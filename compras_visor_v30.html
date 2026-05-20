@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛒 Compras Inteligentes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424;
+    --border: #2e2e2e; --accent: #f5a623; --green: #4caf7d;
+    --red: #e05252; --purple: #9b7fe8; --blue: #5b9bd5;
+    --teal: #2ab5b5; --text: #f0ede8; --text2: #999; --text3: #666;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; }
+
+  /* ── Header ── */
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+  .header-left { display: flex; align-items: baseline; gap: 12px; }
+  .header h1 { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--accent); }
+  .header-sub { color: var(--text3); font-size: 12px; }
+  .dl-btn { background: var(--accent); color: #000; border: none; padding: 9px 20px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.2s; text-decoration: none; }
+  .dl-btn:hover { background: #f0b94a; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(245,166,35,0.3); }
+
+  /* ── Summary bar ── */
+  .summary-bar { padding: 20px 28px; display: flex; gap: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; flex: 1; min-width: 140px; }
+  .stat-card-label { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .stat-card-value { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .stat-card-value.green { color: var(--green); }
+  .stat-card-value.accent { color: var(--accent); }
+  .stat-card-sub { color: var(--text3); font-size: 11px; margin-top: 4px; }
+
+  /* ── Sheet blocks ── */
+  .sheets-container { padding: 28px; display: flex; flex-direction: column; gap: 28px; }
+  .sheet-block { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .sheet-title { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
+  .sheet-title-left { display: flex; align-items: center; gap: 10px; }
+  .sheet-name { font-family: 'DM Serif Display', serif; font-size: 17px; }
+  .sheet-count { background: var(--bg); color: var(--text3); font-size: 11px; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); }
+
+  /* ── Toolbar ── */
+  .sheet-toolbar { padding: 12px 18px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; flex-shrink: 0; }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-wrap input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px 7px 32px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; transition: border-color 0.2s; }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; }
+  .filter-select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; cursor: pointer; }
+
+  /* ── Tables ── */
+  .table-scroll { overflow-x: auto; overflow-y: auto; height: 62vw; max-height: 720px; min-height: 320px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 13px; text-align: left; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody td { padding: 9px 13px; vertical-align: top; line-height: 1.5; }
+
+  /* ── Tienda color stripes ── */
+  tr.row-costco  td:first-child { border-left: 3px solid var(--green); }
+  tr.row-walmart td:first-child { border-left: 3px solid var(--blue); }
+  tr.row-chedraui td:first-child { border-left: 3px solid var(--accent); }
+  tr.row-aki     td:first-child { border-left: 3px solid var(--purple); }
+  tr.row-ml      td:first-child { border-left: 3px solid var(--red); }
+  tr.row-chedpm  td:first-child { border-left: 3px solid var(--teal); }
+
+  /* ── Badges ── */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+  .badge-costco  { background: rgba(76,175,125,0.15);  color: #4caf7d; }
+  .badge-walmart { background: rgba(91,155,213,0.15);  color: #5b9bd5; }
+  .badge-chedraui{ background: rgba(245,166,35,0.15);  color: #f5a623; }
+  .badge-aki     { background: rgba(155,127,232,0.15); color: #9b7fe8; }
+  .badge-ml      { background: rgba(224,82,82,0.15);   color: #e05252; }
+  .badge-chedpm  { background: rgba(42,181,181,0.15);  color: #2ab5b5; }
+
+  /* ── Special rows ── */
+  .price-cell { font-family: 'DM Serif Display', serif; font-size: 13px; color: var(--accent); white-space: nowrap; }
+  .note-promo { color: var(--green); font-size: 11px; }
+  .note-warn  { color: #e8a23a; font-size: 11px; }
+  .note-obs   { color: var(--text3); font-size: 11px; }
+  tr.section-hdr td   { background: var(--surface2); color: var(--text3); font-size: 10.5px; font-weight: 600; letter-spacing: 0.4px; padding: 7px 13px; }
+  tr.subtotal-row td  { font-weight: 700; color: var(--accent); background: rgba(245,166,35,0.05); font-size: 12px; }
+
+  /* ── Resumen table ── */
+  .resumen-table td:nth-child(3),
+  .resumen-table td:nth-child(4) { font-family: 'DM Serif Display', serif; font-size: 15px; }
+  .resumen-table tr.total-row td { border-top: 2px solid var(--accent); color: var(--accent); font-weight: 700; font-size: 16px; }
+  .savings-val { color: var(--green) !important; }
+
+  /* ── Guia table ── */
+  .guia-table td:first-child { white-space: nowrap; color: var(--accent); font-weight: 600; padding-right: 24px; width: 220px; }
+  .guia-table td { color: var(--text2); padding: 10px 13px; }
+
+  /* ── Legend ── */
+  .legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--text3); }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    .sheets-container { padding: 14px; gap: 18px; }
+    .header { padding: 13px 16px; }
+    .summary-bar { padding: 14px 16px; }
+    .table-scroll { height: 85vw; max-height: 500px; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     MÓDULO: LISTA DE COMPRAS
+  ══════════════════════════════════════════════════════ */
+
+  /* Layout de dos columnas dentro del bloque */
+  .lista-layout { display: grid; grid-template-columns: 1fr 290px; gap: 20px; padding: 20px; align-items: start; }
+
+  /* Input con autocomplete */
+  .lista-input-wrap { position: relative; margin-bottom: 14px; }
+  .lista-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .lista-input:focus { border-color: var(--accent); }
+  .lista-input::placeholder { color: var(--text3); }
+
+  /* Dropdown */
+  .lista-dropdown { position: absolute; top: calc(100% + 5px); left: 0; right: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; z-index: 400; display: none; box-shadow: 0 8px 28px rgba(0,0,0,0.55); }
+  .lista-dropdown.visible { display: block; }
+  .ldd-item { padding: 9px 14px; cursor: pointer; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .ldd-item:last-child { border-bottom: none; }
+  .ldd-item:hover, .ldd-item.ldd-active { background: var(--surface); }
+  .ldd-nombre { color: var(--text); font-size: 12px; flex: 1; min-width: 0; white-space: normal; word-break: break-word; }
+  .ldd-meta { color: var(--text3); font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  .ldd-libre { font-style: italic; color: var(--text3); }
+
+  /* Items de la lista */
+  .lista-items { display: flex; flex-direction: column; gap: 7px; }
+  .lista-vacia { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 12px; font-style: italic; border: 1px dashed var(--border); border-radius: 10px; }
+  .litem-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
+  .litem-card:hover { border-color: #3a4060; }
+  .litem-header { display: flex; align-items: center; padding: 9px 12px; gap: 9px; }
+  .litem-check { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; cursor: pointer; flex-shrink: 0; transition: all 0.18s; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; }
+  .litem-check.litem-checked { background: var(--green); border-color: var(--green); }
+  .litem-nombre { font-size: 12.5px; color: var(--text); flex: 1; min-width: 0; cursor: pointer; white-space: normal; word-break: break-word; line-height: 1.4; }
+  .litem-nombre.litem-tachado { text-decoration: line-through; color: var(--text3); }
+  .litem-mejor { font-size: 11px; color: var(--green); white-space: nowrap; flex-shrink: 0; }
+  .litem-expand { color: var(--text3); background: none; border: none; cursor: pointer; font-size: 10px; padding: 2px 5px; transition: color 0.15s; flex-shrink: 0; align-self: flex-start; }
+  .litem-expand:hover { color: var(--accent); }
+  .litem-remove { color: var(--text3); background: none; border: none; cursor: pointer; font-size: 17px; padding: 2px 4px; line-height: 1; transition: color 0.15s; flex-shrink: 0; align-self: flex-start; }
+  .litem-remove:hover { color: var(--red); }
+  .litem-precios { border-top: 1px solid var(--border); padding: 11px 12px; display: none; }
+  .litem-precios.litem-abierto { display: block; }
+  .litem-precios-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .lprecio-fila { display: flex; align-items: flex-start; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); gap: 8px; }
+  .lprecio-fila:last-child { border-bottom: none; }
+  .lprecio-tienda { display: flex; align-items: center; gap: 6px; }
+  .lprecio-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .lprecio-tienda-nom { font-size: 12px; color: var(--text2); }
+  .lprecio-mejor-badge { font-size: 9px; background: rgba(76,175,125,0.15); color: var(--green); padding: 2px 7px; border-radius: 10px; border: 1px solid rgba(76,175,125,0.25); margin-left: 4px; }
+  .lprecio-der { text-align: right; }
+  .lprecio-monto { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--accent); }
+  .lprecio-monto.lprecio-es-mejor { color: var(--green); }
+  .lprecio-nota { font-size: 10px; color: var(--text3); margin-top: 1px; }
+  .litem-sin-precios { font-size: 11px; color: var(--text3); font-style: italic; }
+
+  /* Ruta sugerida (columna derecha) */
+  .ruta-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: sticky; top: 72px; }
+  .ruta-box-header { padding: 13px 16px; border-bottom: 1px solid var(--border); }
+  .ruta-box-title { font-family: 'DM Serif Display', serif; font-size: 15px; }
+  .ruta-box-sub { font-size: 11px; color: var(--text3); }
+  .ruta-vacia { padding: 24px 16px; text-align: center; color: var(--text3); font-size: 12px; font-style: italic; }
+  .ruta-tienda-bloque { border-bottom: 1px solid var(--border); }
+  .ruta-tienda-bloque:last-of-type { border-bottom: none; }
+  .ruta-tienda-hdr { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; }
+  .ruta-tienda-izq { display: flex; align-items: center; gap: 7px; }
+  .ruta-tdot { width: 7px; height: 7px; border-radius: 50%; }
+  .ruta-tnombre { font-size: 12.5px; font-weight: 500; }
+  .ruta-tcuenta { font-size: 11px; color: var(--text3); }
+  .ruta-tsubtotal { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--accent); }
+  .ruta-items-det { padding: 0 16px 10px; display: flex; flex-direction: column; gap: 3px; }
+  .ruta-item-lin { display: flex; align-items: flex-start; justify-content: space-between; font-size: 11px; color: var(--text2); gap: 8px; }
+  .ruta-item-lin-nom { word-break: break-word; flex: 1; }
+  .ruta-item-lin-precio { color: var(--green); white-space: nowrap; flex-shrink: 0; }
+  .ruta-sin-datos { padding: 8px 16px; font-size: 11px; color: var(--text3); font-style: italic; border-top: 1px solid var(--border); }
+  .ruta-total-bar { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-top: 2px solid var(--border); background: var(--surface); }
+  .ruta-total-label { font-size: 12px; color: var(--text2); }
+  .ruta-total-valor { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--accent); }
+
+  /* Botón limpiar lista */
+  .lista-clear-btn { background: transparent; border: 1px solid var(--border); color: var(--text3); padding: 5px 13px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+  .lista-clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+  @media (max-width: 680px) {
+    .lista-layout { grid-template-columns: 1fr; }
+    .ruta-box { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <h1>🛒 Compras Inteligentes</h1>
+    <span class="header-sub" id="header-sub">Cancún · v30 · cargando...</span>
+  </div>
+  <button class="dl-btn" onclick="exportarCSV()">⬇ Exportar CSV</button>
+</header>
+
+<!-- Loading overlay -->
+<div id="loading-overlay" style="
+  position:fixed;inset:0;background:var(--bg);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+">
+  <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent);">🛒</div>
+  <div style="font-size:13px;color:var(--text2);" id="loading-msg">Cargando datos...</div>
+  <div style="width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+    <div id="loading-bar" style="height:100%;width:0%;background:var(--accent);transition:width 0.4s ease;"></div>
+  </div>
+</div>
+
+<div class="summary-bar" id="summaryBar" style="display:none"></div>
+<div class="sheets-container" id="sheetsContainer" style="display:none"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CONFIGURACIÓN — editar aquí para cambiar la fuente de datos
+// ══════════════════════════════════════════════════════════════
+
+// URL base del Google Sheet publicado como CSV
+// Formato: https://docs.google.com/spreadsheets/d/e/XXXX/pub?gid=GID&single=true&output=csv
+const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4b_t11W4G6s7qesXwPPHW0rYEWHDej07PrKwEB4tgfIHYJA9s9Ths4kUTS70dxzLuy4-OlD-cCnnV/pub';
+
+// GIDs de cada hoja (pestaña) dentro del spreadsheet
+// Para encontrar el GID: en Google Sheets, ver la URL al hacer clic en cada pestaña
+// Formato: ...#gid=XXXXXXXXX
+const SHEET_GIDS = {
+  tickets:  '181481044',
+  catalogo: '1890416397',
+  sesiones: '65837170',
+  tiendas:  '293987536',
+};
+
+// CONFIG_TIENDAS — se carga desde Google Sheets al iniciar
+var CONFIG_TIENDAS = {};
+
+// ── GUÍA DE USO (estática — no viene del sheet) ──────────────
+const GUIA = [
+  { pregunta: '📸 Foto del ticket', respuesta: 'Capturo todos los artículos, precios, descuentos y totales' },
+  { pregunta: '📸 Foto del producto', respuesta: 'Identifico nombre completo, marca, gramaje y características' },
+  { pregunta: '📸 Ticket + foto productos', respuesta: 'Intento hacer matching visual (funciona muy bien con 3-5 productos)' },
+  { pregunta: '💬 Mensaje de texto', respuesta: "Ej: 'Vi Listerine en Chedraui a $180' — registro observación de precio" },
+  { pregunta: '📎 Este archivo actualizado', respuesta: 'Lo abres, me lo adjuntas, yo retomo el contexto sin perder nada' },
+  { pregunta: '🔄 Cada sesión', respuesta: 'Adjunta archivo + nuevos tickets → yo genero versión actualizada' },
+  { pregunta: '⬇ Exportar CSV', respuesta: 'Descarga todos los tickets como CSV para abrir en Excel o Sheets' },
+];
+
+// ══════════════════════════════════════════════════════════════
+// VARIABLES GLOBALES — se pueblan al cargar
+// ══════════════════════════════════════════════════════════════
+var TICKETS  = [];
+var CATALOGO = [];
+var SESIONES = [];
+
+// ══════════════════════════════════════════════════════════════
+// CARGA DE DATOS DESDE GOOGLE SHEETS
+// ══════════════════════════════════════════════════════════════
+
+function sheetUrl(gid) {
+  return SHEET_BASE + '?gid=' + gid + '&single=true&output=csv';
+}
+
+// Parsea CSV respetando campos entre comillas con comas internas
+function parsearCSV(texto) {
+  var lineas = texto.trim().split('\n');
+  if (lineas.length < 2) return [];
+  var headers = parsearLineaCSV(lineas[0]);
+  return lineas.slice(1).map(function(linea) {
+    var valores = parsearLineaCSV(linea);
+    var obj = {};
+    headers.forEach(function(h, i) {
+      obj[h.trim()] = (valores[i] || '').trim();
+    });
+    return obj;
+  }).filter(function(row) {
+    // Descartar filas completamente vacías
+    return Object.values(row).some(function(v) { return v !== ''; });
+  });
+}
+
+function parsearLineaCSV(linea) {
+  var resultado = [];
+  var campo = '';
+  var dentroComillas = false;
+  for (var i = 0; i < linea.length; i++) {
+    var c = linea[i];
+    if (c === '"') {
+      if (dentroComillas && linea[i+1] === '"') { campo += '"'; i++; }
+      else { dentroComillas = !dentroComillas; }
+    } else if (c === ',' && !dentroComillas) {
+      resultado.push(campo);
+      campo = '';
+    } else {
+      campo += c;
+    }
+  }
+  resultado.push(campo);
+  return resultado;
+}
+
+// Convierte una fila del CSV de tickets al formato que espera la app
+function mapearTicket(row) {
+  return {
+    fecha:        row.fecha        || '',
+    tienda:       row.tienda       || '',
+    ciudad:       row.ciudad       || '',
+    producto:     row.producto     || '',
+    categoria:    row.categoria    || '',
+    presentacion: row.presentacion || '',
+    precio:       parseFloat(row.precio) || 0,
+    cantidad:     parseInt(row.cantidad) || 1,
+    notas:        row.notas        || '',
+    tipo:         row.tipo         || 'compra',
+  };
+}
+
+function mapearCatalogo(row) {
+  return {
+    producto:     row.producto     || '',
+    categoria:    row.categoria    || '',
+    presentacion: row.presentacion || '',
+    tienda:       row.tienda       || '',
+    ciudad:       row.ciudad       || '',
+    precio:       parseFloat(row.precio) || 0,
+    precioUnidad: row.precioUnidad || '',
+    notas:        row.notas        || '',
+  };
+}
+
+function mapearSesion(row) {
+  return {
+    tienda:          row.tienda          || '',
+    etiquetaOriginal:row.etiquetaOriginal|| '',
+    fecha:           row.fecha           || '',
+    total:           parseFloat(row.total)  || 0,
+    ahorro:          parseFloat(row.ahorro) || 0,
+    notas:           row.notas           || '',
+  };
+}
+
+function setLoadingMsg(msg, pct) {
+  var el = document.getElementById('loading-msg');
+  var bar = document.getElementById('loading-bar');
+  if (el) el.textContent = msg;
+  if (bar) bar.style.width = pct + '%';
+}
+
+
+function mapearTienda(row) {
+  // Columnas esperadas en el sheet: clave, etiqueta, color, emoji
+  var clave = (row.clave || '').trim();
+  if (!clave) return null;
+  return {
+    clave:    clave,
+    etiqueta: row.etiqueta || clave,
+    color:    row.color    || '#999999',
+    emoji:    row.emoji    || '⚪',
+  };
+}
+
+function fetchSheet(gid, mapFn, nombre) {
+  return fetch(sheetUrl(gid))
+    .then(function(r) {
+      if (!r.ok) throw new Error('Error al cargar ' + nombre + ': HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(txt) {
+      return parsearCSV(txt).map(mapFn).filter(function(r) {
+        // descartar filas completamente vacías
+        return Object.values(r).some(function(v) { return v !== '' && v !== null && v !== undefined; });
+      });
+    });
+}
+
+function cargarDatos() {
+  setLoadingMsg('Cargando configuración...', 10);
+
+  // Tiendas primero — CONFIG_TIENDAS debe existir antes de renderizar cualquier cosa
+  return fetch(sheetUrl(SHEET_GIDS.tiendas))
+    .then(function(r) { return r.text(); })
+    .then(function(txt) {
+      var filas = parsearCSV(txt);
+      filas.forEach(function(row) {
+        var t = mapearTienda(row);
+        if (t) CONFIG_TIENDAS[t.clave] = t;
+      });
+      setLoadingMsg('Cargando tickets...', 30);
+      return fetchSheet(SHEET_GIDS.tickets, mapearTicket, 'tickets');
+    })
+    .then(function(data) {
+      TICKETS = data;
+      setLoadingMsg('Cargando catálogo...', 60);
+      return fetchSheet(SHEET_GIDS.catalogo, mapearCatalogo, 'catálogo');
+    })
+    .then(function(data) {
+      CATALOGO = data;
+      setLoadingMsg('Cargando sesiones...', 85);
+      return fetchSheet(SHEET_GIDS.sesiones, mapearSesion, 'sesiones');
+    })
+    .then(function(data) {
+      SESIONES = data;
+      setLoadingMsg('Listo', 100);
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// FUNCIONES UTILITARIAS
+// ══════════════════════════════════════════════════════════════
+
+// Formatea un número como precio en pesos mexicanos
+function formatearPrecio(valor) {
+  var numero = parseFloat(String(valor).replace(/[$,]/g, ''));
+  if (isNaN(numero)) return valor;
+  return '$' + numero.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Devuelve la clave de tienda a partir de texto libre
+function obtenerClaveTienda(texto) {
+  var t = (texto || '').toLowerCase();
+  if (t.includes('costco'))  return 'costco';
+  if (t.includes('walmart')) return 'walmart';
+  if (t.includes('p.m.') || t.includes('663') || t.includes('chedpm')) return 'chedpm';
+  if (t.includes('chedraui')) return 'chedraui';
+  if (t.includes('aki'))     return 'aki';
+  if (t.includes('mercado') || t.includes('online') || t === 'ml') return 'ml';
+  return texto; // devuelve la clave tal cual si ya viene limpia
+}
+
+// Genera el HTML de un badge de tienda
+function renderBadgeTienda(claveTienda) {
+  var config = CONFIG_TIENDAS[claveTienda];
+  if (!config) return '';
+  return '<span class="badge badge-' + claveTienda + '">' + config.etiqueta + '</span>';
+}
+
+// Devuelve la clase CSS para colorear una nota según su contenido
+function obtenerClaseNota(nota) {
+  if (!nota) return '';
+  if (nota.includes('✅') || nota.includes('Promo') || nota.includes('promo') || nota.includes('🔖')) return 'note-promo';
+  if (nota.includes('⚠️') || nota.includes('❓')) return 'note-warn';
+  if (nota.includes('👁️') || nota.includes('Ref.')) return 'note-obs';
+  return '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// CÁLCULO DE RESUMEN — se deriva de TICKETS, no se mantiene a mano
+// ══════════════════════════════════════════════════════════════
+function calcularResumenPorTienda() {
+  var agrupado = {};
+
+  TICKETS.filter(function(t) { return t.tipo === 'compra'; })
+    .forEach(function(ticket) {
+      var clave = ticket.tienda + '|' + ticket.fecha;
+      if (!agrupado[clave]) {
+        agrupado[clave] = {
+          tienda: ticket.tienda,
+          fecha: ticket.fecha,
+          total: 0,
+          articulos: 0,
+        };
+      }
+      agrupado[clave].total += ticket.precio * ticket.cantidad;
+      agrupado[clave].articulos += 1;
+    });
+
+  return Object.values(agrupado).sort(function(a, b) {
+    return a.fecha.localeCompare(b.fecha);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONSTRUCCIÓN DE LA UI
+// ══════════════════════════════════════════════════════════════
+
+// Renderiza las tarjetas de resumen global en el header
+function renderSummaryBar() {
+  var totalGastado = SESIONES.reduce(function(acc, s) { return acc + s.total; }, 0);
+  var totalAhorrado = SESIONES.reduce(function(acc, s) { return acc + s.ahorro; }, 0);
+  var tiendas = new Set(SESIONES.map(function(s) { return s.tienda; }));
+  var totalArticulos = TICKETS.length;
+
+  var tarjetas = [
+    { etiqueta: 'Total gastado',       valor: formatearPrecio(totalGastado),   clase: 'accent', sub: tiendas.size + ' tiendas' },
+    { etiqueta: 'Total ahorrado',      valor: formatearPrecio(totalAhorrado),  clase: 'green',  sub: 'en descuentos' },
+    { etiqueta: 'Artículos en tickets',valor: totalArticulos,                  clase: '',       sub: TICKETS.filter(function(t){return t.tipo==='compra';}).length + ' compras · ' + TICKETS.filter(function(t){return t.tipo==='observacion';}).length + ' observaciones' },
+    { etiqueta: 'Catálogo de precios', valor: CATALOGO.length,                clase: '',       sub: 'productos referenciados' },
+  ];
+
+  document.getElementById('summaryBar').innerHTML = tarjetas.map(function(t) {
+    return '<div class="stat-card">' +
+      '<div class="stat-card-label">' + t.etiqueta + '</div>' +
+      '<div class="stat-card-value ' + t.clase + '">' + t.valor + '</div>' +
+      '<div class="stat-card-sub">' + t.sub + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// HTML estático de la leyenda de tiendas
+var HTML_LEYENDA = '<div class="legend">' +
+  Object.values(CONFIG_TIENDAS).map(function(cfg) {
+    return '<div class="legend-item">' +
+      '<div class="legend-dot" style="background:' + cfg.color + '"></div>' +
+      cfg.etiqueta + '</div>';
+  }).join('') +
+  '</div>';
+
+// Renderiza la tabla de tickets con filtros
+function renderTablaTickets(filtroTexto, filtroTienda) {
+  var datos = TICKETS;
+
+  if (filtroTexto) {
+    var txt = filtroTexto.toLowerCase();
+    datos = datos.filter(function(t) {
+      return [t.producto, t.categoria, t.ciudad, t.notas].join(' ').toLowerCase().includes(txt);
+    });
+  }
+
+  if (filtroTienda) {
+    datos = datos.filter(function(t) { return t.tienda === filtroTienda; });
+  }
+
+  var compras = datos.filter(function(t) { return t.tipo === 'compra'; });
+  var conteo = compras.length;
+
+  // Agrupar por tienda+fecha para insertar encabezados de sección
+  var filas = '';
+  var seccionActual = '';
+
+  datos.forEach(function(ticket) {
+    var seccionClave = ticket.tienda + '|' + ticket.fecha;
+    var config = CONFIG_TIENDAS[ticket.tienda] || {};
+    var etiquetaTienda = config.etiqueta || ticket.tienda;
+
+    if (seccionClave !== seccionActual) {
+      seccionActual = seccionClave;
+      var emoji = ticket.tipo === 'observacion' ? '👁️' : '🛒';
+      filas += '<tr class="section-hdr"><td colspan="8">' +
+        emoji + '  ' + etiquetaTienda + ' — ' + ticket.fecha +
+        '</td></tr>';
+    }
+
+    var totalLinea = ticket.precio * ticket.cantidad;
+    filas += '<tr class="row-' + ticket.tienda + '">' +
+      '<td style="color:var(--text3);white-space:nowrap">' + ticket.fecha + '</td>' +
+      '<td>' + renderBadgeTienda(ticket.tienda) + '</td>' +
+      '<td style="color:var(--text3)">' + ticket.ciudad + '</td>' +
+      '<td style="font-weight:500;max-width:240px">' + ticket.producto + '</td>' +
+      '<td style="color:var(--text3);font-size:11px">' + ticket.categoria + '</td>' +
+      '<td class="price-cell">' + formatearPrecio(ticket.precio) + '</td>' +
+      '<td style="color:var(--text3)">' + ticket.cantidad + '</td>' +
+      '<td><span class="' + obtenerClaseNota(ticket.notas) + '">' + (ticket.notas || '') + '</span></td>' +
+      '</tr>';
+  });
+
+  return { conteo: { compras: conteo, obs: datos.filter(function(t){return t.tipo==='observacion';}).length }, html: '<table>' +
+    '<thead><tr><th>Fecha</th><th>Tienda</th><th>Ciudad</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Cant.</th><th>Notas</th></tr></thead>' +
+    '<tbody>' + filas + '</tbody></table>' };
+}
+
+// Renderiza el catálogo de precios
+function renderTablaCatalogo(filtroTexto, filtroTienda) {
+  var datos = CATALOGO;
+
+  if (filtroTexto) {
+    var txt = filtroTexto.toLowerCase();
+    datos = datos.filter(function(p) {
+      return [p.producto, p.categoria, p.ciudad, p.notas].join(' ').toLowerCase().includes(txt);
+    });
+  }
+
+  if (filtroTienda) {
+    datos = datos.filter(function(p) { return obtenerClaveTienda(p.tienda) === filtroTienda; });
+  }
+
+  var filas = datos.map(function(p) {
+    var clave = obtenerClaveTienda(p.tienda);
+    return '<tr class="row-' + clave + '">' +
+      '<td style="font-weight:500;max-width:240px">' + p.producto + '</td>' +
+      '<td style="color:var(--text3);font-size:11px">' + p.categoria + '</td>' +
+      '<td style="color:var(--text3)">' + p.presentacion + '</td>' +
+      '<td>' + renderBadgeTienda(clave) + '</td>' +
+      '<td style="color:var(--text3)">' + p.ciudad + '</td>' +
+      '<td class="price-cell">' + formatearPrecio(p.precio) + '</td>' +
+      '<td style="color:var(--text2);font-size:11px">' + (p.precioUnidad || '') + '</td>' +
+      '<td><span class="' + obtenerClaseNota(p.notas) + '">' + (p.notas || '') + '</span></td>' +
+      '</tr>';
+  }).join('');
+
+  return { conteo: datos.length, html: '<table>' +
+    '<thead><tr><th>Producto</th><th>Categoría</th><th>Presentación</th><th>Tienda</th><th>Ciudad</th><th>Precio</th><th>Precio/unidad</th><th>Notas</th></tr></thead>' +
+    '<tbody>' + filas + '</tbody></table>' };
+}
+
+// Renderiza el resumen calculado automáticamente
+function renderTablaResumen() {
+  var totalGastado = SESIONES.reduce(function(acc, s) { return acc + s.total; }, 0);
+  var totalAhorro  = SESIONES.reduce(function(acc, s) { return acc + s.ahorro; }, 0);
+
+  var filas = SESIONES.map(function(s) {
+    var config = CONFIG_TIENDAS[s.tienda] || {};
+    return '<tr class="row-' + s.tienda + '">' +
+      '<td style="font-weight:500">' + s.etiquetaOriginal + '</td>' +
+      '<td style="color:var(--text3)">' + s.fecha + '</td>' +
+      '<td class="price-cell" style="font-size:14px">' + formatearPrecio(s.total) + '</td>' +
+      '<td class="price-cell savings-val" style="font-size:14px">' + formatearPrecio(s.ahorro) + '</td>' +
+      '<td style="color:var(--text3);font-size:11px">' + (s.notas || '') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  filas += '<tr class="total-row">' +
+    '<td>TOTAL</td><td></td>' +
+    '<td class="price-cell" style="font-size:17px">' + formatearPrecio(totalGastado) + '</td>' +
+    '<td class="price-cell savings-val" style="font-size:17px">' + formatearPrecio(totalAhorro) + '</td>' +
+    '<td></td></tr>';
+
+  return '<table class="resumen-table">' +
+    '<thead><tr><th>Tienda</th><th>Fecha</th><th>Total pagado</th><th>Ahorro</th><th>Notas</th></tr></thead>' +
+    '<tbody>' + filas + '</tbody></table>';
+}
+
+// Renderiza la guía de uso
+function renderTablaGuia() {
+  var filas = GUIA.map(function(g) {
+    return '<tr><td>' + g.pregunta + '</td><td style="color:var(--text2)">' + g.respuesta + '</td></tr>';
+  }).join('');
+  return '<table class="guia-table"><tbody>' + filas + '</tbody></table>';
+}
+
+// ── Opciones de tiendas para el selector ──
+var HTML_OPCIONES_TIENDAS = '<option value="">Todas las tiendas</option>' +
+  Object.values(CONFIG_TIENDAS).map(function(cfg) {
+    return '<option value="' + cfg.clave + '">' + cfg.emoji + ' ' + cfg.etiqueta + '</option>';
+  }).join('');
+
+// Construye el bloque HTML de cada sección
+function construirBloqueSección(config) {
+  var tieneFilters = config.tieneFilters;
+  var toolbar = tieneFilters
+    ? '<div class="sheet-toolbar">' +
+        '<div class="search-wrap"><span class="search-icon">🔍</span>' +
+        '<input type="text" placeholder="Buscar..." id="srch-' + config.id + '" oninput="actualizarSeccion(\'' + config.id + '\')">' +
+        '</div>' +
+        '<select class="filter-select" id="tsel-' + config.id + '" onchange="actualizarSeccion(\'' + config.id + '\')">' +
+        HTML_OPCIONES_TIENDAS + '</select>' +
+        '</div>'
+    : '';
+
+  return '<div class="sheet-block">' +
+    '<div class="sheet-title">' +
+      '<div class="sheet-title-left">' +
+        '<span>' + config.icono + '</span>' +
+        '<span class="sheet-name" style="color:' + config.color + '">' + config.nombre + '</span>' +
+        '<span class="sheet-count" id="cnt-' + config.id + '">—</span>' +
+      '</div>' +
+      (tieneFilters ? HTML_LEYENDA : '') +
+    '</div>' +
+    toolbar +
+    '<div class="table-scroll" id="tbl-' + config.id + '"></div>' +
+    '</div>';
+}
+
+// Configuración de cada sección de la app
+var SECCIONES = [
+  { id: 'lista',    nombre: 'Lista de compras',  icono: '📋', color: 'var(--accent)', tieneFilters: false },
+  { id: 'tickets',  nombre: 'Tickets',            icono: '🧾', color: 'var(--green)',  tieneFilters: true },
+  { id: 'catalogo', nombre: 'Catálogo precios',   icono: '📦', color: 'var(--accent)', tieneFilters: true },
+  { id: 'resumen',  nombre: 'Resumen',            icono: '📊', color: 'var(--blue)',   tieneFilters: false },
+  { id: 'guia',     nombre: 'Guía de uso',        icono: '📖', color: 'var(--purple)', tieneFilters: false },
+];
+
+// Actualiza una sección individual con los filtros actuales
+function actualizarSeccion(idSeccion) {
+  var contenedor = document.getElementById('tbl-' + idSeccion);
+  var contadorEl  = document.getElementById('cnt-' + idSeccion);
+  var filtroTexto = (document.getElementById('srch-' + idSeccion) || {}).value || '';
+  var filtroTienda = (document.getElementById('tsel-' + idSeccion) || {}).value || '';
+
+  var html = '';
+  var conteo = null;
+
+  if (idSeccion === 'lista') {
+    // El módulo lista se renderiza con su propio sistema — no usa tabla
+    renderModuloLista();
+    return;
+  } else if (idSeccion === 'tickets') {
+    var resultado = renderTablaTickets(filtroTexto, filtroTienda);
+    html = resultado.html;
+    conteo = resultado.conteo.compras + ' compras · ' + resultado.conteo.obs + ' observaciones';
+  } else if (idSeccion === 'catalogo') {
+    var resultado = renderTablaCatalogo(filtroTexto, filtroTienda);
+    html = resultado.html;
+    conteo = resultado.conteo + ' productos';
+  } else if (idSeccion === 'resumen') {
+    html = renderTablaResumen();
+    conteo = SESIONES.length + ' sesiones';
+  } else if (idSeccion === 'guia') {
+    html = renderTablaGuia();
+    conteo = '';
+  }
+
+  if (contenedor) contenedor.innerHTML = html;
+  if (contadorEl && conteo !== null) contadorEl.textContent = conteo;
+}
+
+// Inicializa toda la app
+function inicializar() {
+  renderSummaryBar();
+  document.getElementById('sheetsContainer').innerHTML =
+    SECCIONES.map(construirBloqueSección).join('');
+  SECCIONES.forEach(function(s) { actualizarSeccion(s.id); });
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXPORTACIÓN CSV — generado desde los datos actuales
+// ══════════════════════════════════════════════════════════════
+function exportarCSV() {
+  var encabezados = ['Fecha', 'Tienda', 'Ciudad', 'Producto', 'Categoría', 'Presentación', 'Precio', 'Cantidad', 'Total', 'Tipo', 'Notas'];
+
+  var filas = TICKETS.map(function(t) {
+    var config = CONFIG_TIENDAS[t.tienda] || {};
+    var total = (t.precio * t.cantidad).toFixed(2);
+    return [
+      t.fecha, config.etiqueta || t.tienda, t.ciudad, t.producto,
+      t.categoria, t.presentacion, t.precio, t.cantidad, total, t.tipo, t.notas || ''
+    ].map(function(campo) {
+      // Encerrar en comillas si el campo contiene coma o comillas
+      var s = String(campo).replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s + '"' : s;
+    }).join(',');
+  });
+
+  var contenidoCSV = encabezados.join(',') + '\n' + filas.join('\n');
+  var blob = new Blob(['\uFEFF' + contenidoCSV], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement('a');
+  link.href = url;
+  link.download = 'compras_v19.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO: LISTA DE COMPRAS
+// Lee directamente de TICKETS y CATALOGO — sin duplicar datos.
+// Estado vive en memoria (sesión); se limpia al recargar.
+// ══════════════════════════════════════════════════════════════
+
+var listaItems      = [];   // [{ id, nombre, expandido, checked }]
+var listaSugerencias = [];  // sugerencias activas del dropdown
+var listaDropIdx    = -1;
+
+// Construye el índice de precios desde TICKETS y CATALOGO en tiempo real.
+// Cada entrada: { producto, tienda, precio, nota }
+function construirIndicePrecios() {
+  var indice = [];
+
+  // Fuente 1: TICKETS (precios reales pagados)
+  TICKETS.forEach(function(t) {
+    if (!t.producto || !t.precio) return;
+    indice.push({
+      producto: t.producto,
+      tienda:   t.tienda,
+      precio:   t.precio,
+      nota:     t.notas || ''
+    });
+  });
+
+  // Fuente 2: CATALOGO (precios de referencia)
+  if (typeof CATALOGO !== 'undefined') {
+    CATALOGO.forEach(function(p) {
+      if (!p.producto || !p.precio) return;
+      indice.push({
+        producto: p.producto,
+        tienda:   obtenerClaveTienda(p.tienda || ''),
+        precio:   parseFloat(String(p.precio).replace(/[$,]/g, '')) || 0,
+        nota:     p.nota || p.presentacion || ''
+      });
+    });
+  }
+
+  return indice;
+}
+
+// Normaliza texto para búsqueda tolerante a acentos y mayúsculas
+function listaNormalizar(texto) {
+  return (texto || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Busca precios para un nombre dado en el índice
+function listaBuscarPrecios(nombre) {
+  var indice   = construirIndicePrecios();
+  var norm     = listaNormalizar(nombre);
+  var palabras = norm.split(/\s+/).filter(function(p) { return p.length >= 4; });
+
+  return indice.filter(function(d) {
+    var normProd = listaNormalizar(d.producto);
+    if (normProd.includes(norm) || norm.includes(normProd)) return true;
+    var hits = palabras.filter(function(p) { return normProd.includes(p); });
+    return hits.length >= 2;
+  });
+}
+
+// Mejor precio por tienda (el más bajo de cada una)
+function listaMejorPorTienda(precios) {
+  var porTienda = {};
+  precios.forEach(function(p) {
+    if (!porTienda[p.tienda] || p.precio < porTienda[p.tienda].precio) {
+      porTienda[p.tienda] = p;
+    }
+  });
+  return Object.values(porTienda).sort(function(a, b) { return a.precio - b.precio; });
+}
+
+// Genera sugerencias para el dropdown
+function listaGenerarSugerencias(texto) {
+  var indice = construirIndicePrecios();
+  var norm   = listaNormalizar(texto);
+  if (norm.length < 2) return [];
+
+  var vistos   = {};
+  var resultado = [];
+
+  indice.forEach(function(d) {
+    var normProd = listaNormalizar(d.producto);
+    if (!normProd.includes(norm)) return;
+    if (vistos[d.producto]) {
+      if (!vistos[d.producto].tiendas.includes(d.tienda)) {
+        vistos[d.producto].tiendas.push(d.tienda);
+      }
+      return;
+    }
+    var entrada = { nombre: d.producto, tiendas: [d.tienda] };
+    vistos[d.producto] = entrada;
+    resultado.push(entrada);
+  });
+
+  return resultado.slice(0, 8);
+}
+
+// ── AUTOCOMPLETE ────────────────────────────────────────────
+
+function listaOnInput(valor) {
+  listaDropIdx    = -1;
+  listaSugerencias = listaGenerarSugerencias(valor);
+  var dd = document.getElementById('lista-dropdown');
+  if (!dd) return;
+
+  if (!valor || valor.trim().length < 2) {
+    dd.classList.remove('visible');
+    dd.innerHTML = '';
+    return;
+  }
+
+  var hayExacto = listaSugerencias.some(function(s) {
+    return listaNormalizar(s.nombre) === listaNormalizar(valor.trim());
+  });
+
+  var html = '';
+
+  // Opción "agregar sin seleccionar" PRIMERO — Enter la elige por default
+  if (!hayExacto) {
+    html += '<div class="ldd-item ldd-libre-item" onclick="listaAgregarLibre()">' +
+      '<span class="ldd-nombre ldd-libre">➕ Agregar "' + valor.trim() + '" sin datos de precio</span>' +
+    '</div>';
+  }
+
+  // Sugerencias debajo
+  html += listaSugerencias.map(function(s, i) {
+    var tiendas = s.tiendas.map(function(t) {
+      return (CONFIG_TIENDAS[t] || {}).etiqueta || t;
+    }).join(', ');
+    return '<div class="ldd-item" data-idx="' + i + '" onclick="listaSeleccionar(' + i + ')">' +
+      '<span class="ldd-nombre">' + s.nombre + '</span>' +
+      '<span class="ldd-meta">' + tiendas + '</span>' +
+    '</div>';
+  }).join('');
+
+  dd.innerHTML = html;
+  dd.classList.add('visible');
+}
+
+function listaOnKeydown(e) {
+  var items = document.querySelectorAll('#lista-dropdown .ldd-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    listaDropIdx = Math.min(listaDropIdx + 1, items.length - 1);
+    items.forEach(function(el, i) { el.classList.toggle('ldd-active', i === listaDropIdx); });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    listaDropIdx = Math.max(listaDropIdx - 1, 0);
+    items.forEach(function(el, i) { el.classList.toggle('ldd-active', i === listaDropIdx); });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (listaDropIdx >= 0) {
+      // Usuario navegó con flechas — ejecutar el ítem resaltado
+      items[listaDropIdx].click();
+    } else {
+      // Sin navegación — default: agregar texto libre (primer ítem del dropdown)
+      var itemLibre = document.querySelector('#lista-dropdown .ldd-libre-item');
+      if (itemLibre) {
+        listaAgregarLibre();
+      } else if (listaSugerencias.length > 0) {
+        // Solo hay sugerencias exactas — seleccionar la primera
+        listaSeleccionar(0);
+      }
+    }
+  } else if (e.key === 'Escape') {
+    listaCerrarDropdown();
+  }
+}
+
+function listaCerrarDropdown() {
+  var dd = document.getElementById('lista-dropdown');
+  if (dd) { dd.classList.remove('visible'); dd.innerHTML = ''; }
+  listaDropIdx    = -1;
+  listaSugerencias = [];
+}
+
+function listaSeleccionar(idx) {
+  var s = listaSugerencias[idx];
+  if (s) listaAgregar(s.nombre);
+}
+
+function listaAgregarLibre() {
+  var input = document.getElementById('lista-input');
+  if (!input) return;
+  var nombre = (input.value || '').trim();
+  if (nombre.length >= 2) listaAgregar(nombre);
+}
+
+function listaAgregar(nombre) {
+  var yaExiste = listaItems.some(function(i) {
+    return listaNormalizar(i.nombre) === listaNormalizar(nombre);
+  });
+  if (!yaExiste) {
+    listaItems.push({ id: Date.now(), nombre: nombre, expandido: false, checked: false });
+  }
+  var input = document.getElementById('lista-input');
+  if (input) { input.value = ''; input.focus(); }
+  listaCerrarDropdown();
+  listaRenderItems();
+  listaRenderRuta();
+}
+
+function listaToggleExpand(id) {
+  var item = listaItems.find(function(i) { return i.id === id; });
+  if (item) item.expandido = !item.expandido;
+  listaRenderItems();
+}
+
+function listaToggleCheck(id) {
+  var item = listaItems.find(function(i) { return i.id === id; });
+  if (item) item.checked = !item.checked;
+  listaRenderItems();
+  listaRenderRuta();
+}
+
+function listaEliminar(id) {
+  listaItems = listaItems.filter(function(i) { return i.id !== id; });
+  listaRenderItems();
+  listaRenderRuta();
+}
+
+function listaLimpiar() {
+  listaItems = [];
+  listaRenderItems();
+  listaRenderRuta();
+}
+
+// ── RENDER ITEMS ─────────────────────────────────────────────
+
+function listaRenderItems() {
+  var cont = document.getElementById('lista-items-cont');
+  if (!cont) return;
+
+  if (listaItems.length === 0) {
+    cont.innerHTML = '<div class="lista-vacia">La lista está vacía — escribe un producto arriba</div>';
+    return;
+  }
+
+  cont.innerHTML = listaItems.map(function(item) {
+    var precios  = listaBuscarPrecios(item.nombre);
+    var mejores  = listaMejorPorTienda(precios);
+    var hayPrec  = mejores.length > 0;
+    var mejor    = hayPrec ? mejores[0] : null;
+
+    var preciosHTML = hayPrec
+      ? '<div class="litem-precios-label">Precios conocidos — mejor primero</div>' +
+        mejores.map(function(p, i) {
+          var cfg     = CONFIG_TIENDAS[p.tienda] || {};
+          var esMejor = i === 0;
+          return '<div class="lprecio-fila">' +
+            '<div class="lprecio-tienda">' +
+              '<div class="lprecio-dot" style="background:' + (cfg.color || '#999') + '"></div>' +
+              '<span class="lprecio-tienda-nom">' + (cfg.etiqueta || p.tienda) + '</span>' +
+              (esMejor ? '<span class="lprecio-mejor-badge">mejor precio</span>' : '') +
+            '</div>' +
+            '<div class="lprecio-der">' +
+              '<div class="lprecio-monto' + (esMejor ? ' lprecio-es-mejor' : '') + '">' + formatearPrecio(p.precio) + '</div>' +
+              (p.nota ? '<div class="lprecio-nota">' + p.nota + '</div>' : '') +
+            '</div>' +
+          '</div>';
+        }).join('')
+      : '<div class="litem-sin-precios">Sin datos de precio para este artículo todavía.</div>';
+
+    return '<div class="litem-card">' +
+      '<div class="litem-header">' +
+        '<div class="litem-check' + (item.checked ? ' litem-checked' : '') + '" onclick="listaToggleCheck(' + item.id + ')">' +
+          (item.checked ? '✓' : '') +
+        '</div>' +
+        '<span class="litem-nombre' + (item.checked ? ' litem-tachado' : '') + '" onclick="listaToggleExpand(' + item.id + ')">' +
+          item.nombre +
+        '</span>' +
+        (hayPrec && !item.checked ? '<span class="litem-mejor">' + formatearPrecio(mejor.precio) + '</span>' : '') +
+        '<button class="litem-expand" onclick="listaToggleExpand(' + item.id + ')">' + (item.expandido ? '▲' : '▼') + '</button>' +
+        '<button class="litem-remove" onclick="listaEliminar(' + item.id + ')">×</button>' +
+      '</div>' +
+      '<div class="litem-precios' + (item.expandido ? ' litem-abierto' : '') + '">' + preciosHTML + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── RENDER RUTA ──────────────────────────────────────────────
+
+function listaRenderRuta() {
+  var cont        = document.getElementById('lista-ruta-cont');
+  if (!cont) return;
+  var activos     = listaItems.filter(function(i) { return !i.checked; });
+
+  if (activos.length === 0) {
+    cont.innerHTML = '<div class="ruta-vacia">Agrega ítems para ver la ruta óptima</div>';
+    return;
+  }
+
+  var asignaciones = {};
+  var sinPrecio    = [];
+
+  activos.forEach(function(item) {
+    var mejores = listaMejorPorTienda(listaBuscarPrecios(item.nombre));
+    if (mejores.length === 0) { sinPrecio.push(item.nombre); return; }
+    var mejor = mejores[0];
+    if (!asignaciones[mejor.tienda]) asignaciones[mejor.tienda] = [];
+    asignaciones[mejor.tienda].push({ nombre: item.nombre, precio: mejor.precio });
+  });
+
+  var tiendas = Object.keys(asignaciones).sort(function(a, b) {
+    return asignaciones[b].length - asignaciones[a].length;
+  });
+
+  if (tiendas.length === 0) {
+    cont.innerHTML = '<div class="ruta-vacia">Ningún ítem tiene datos de precio aún.</div>';
+    return;
+  }
+
+  var totalEstimado = 0;
+  tiendas.forEach(function(t) {
+    asignaciones[t].forEach(function(i) { totalEstimado += i.precio; });
+  });
+
+  var html = tiendas.map(function(clave) {
+    var cfg      = CONFIG_TIENDAS[clave] || {};
+    var items    = asignaciones[clave];
+    var subtotal = items.reduce(function(acc, i) { return acc + i.precio; }, 0);
+
+    return '<div class="ruta-tienda-bloque">' +
+      '<div class="ruta-tienda-hdr">' +
+        '<div class="ruta-tienda-izq">' +
+          '<div class="ruta-tdot" style="background:' + (cfg.color || '#999') + '"></div>' +
+          '<span class="ruta-tnombre">' + (cfg.etiqueta || clave) + '</span>' +
+          '<span class="ruta-tcuenta">· ' + items.length + ' ítem' + (items.length > 1 ? 's' : '') + '</span>' +
+        '</div>' +
+        '<span class="ruta-tsubtotal">' + formatearPrecio(subtotal) + '</span>' +
+      '</div>' +
+      '<div class="ruta-items-det">' +
+        items.map(function(i) {
+          var nom = i.nombre.length > 28 ? i.nombre.substring(0, 28) + '…' : i.nombre;
+          return '<div class="ruta-item-lin">' +
+            '<span class="ruta-item-lin-nom">' + nom + '</span>' +
+            '<span class="ruta-item-lin-precio">' + formatearPrecio(i.precio) + '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  if (sinPrecio.length > 0) {
+    html += '<div class="ruta-sin-datos">⚠ Sin datos: ' + sinPrecio.join(' · ') + '</div>';
+  }
+
+  html += '<div class="ruta-total-bar">' +
+    '<span class="ruta-total-label">Total estimado</span>' +
+    '<span class="ruta-total-valor">' + formatearPrecio(totalEstimado) + '</span>' +
+  '</div>';
+
+  cont.innerHTML = html;
+}
+
+// ── RENDER MÓDULO COMPLETO ───────────────────────────────────
+// Inyecta el HTML del módulo en el contenedor del bloque de sección
+
+function renderModuloLista() {
+  var cont = document.getElementById('tbl-lista');
+  if (!cont) return;
+
+  cont.style.height = 'auto';
+  cont.style.maxHeight = 'none';
+  cont.style.overflow = 'visible';
+
+  cont.innerHTML =
+    '<div class="lista-layout">' +
+
+      // Columna izquierda: input + lista de ítems
+      '<div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+          '<span style="font-size:11px;color:var(--text3);">Escribe para buscar en tus precios conocidos · Enter para agregar</span>' +
+          '<button class="lista-clear-btn" onclick="listaLimpiar()">✕ Limpiar</button>' +
+        '</div>' +
+        '<div style="position:relative;">' +
+          '<input type="text" class="lista-input" id="lista-input" ' +
+            'placeholder="Ej: avena, Listerine, frijoles…" autocomplete="off" ' +
+            'oninput="listaOnInput(this.value)" onkeydown="listaOnKeydown(event)">' +
+          '<div class="lista-dropdown" id="lista-dropdown"></div>' +
+        '</div>' +
+        '<div class="lista-items" style="margin-top:14px;" id="lista-items-cont">' +
+          '<div class="lista-vacia">La lista está vacía — escribe un producto arriba</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Columna derecha: ruta sugerida
+      '<div class="ruta-box">' +
+        '<div class="ruta-box-header">' +
+          '<div class="ruta-box-title">Ruta sugerida</div>' +
+          '<div class="ruta-box-sub">Mejor precio conocido por tienda</div>' +
+        '</div>' +
+        '<div id="lista-ruta-cont">' +
+          '<div class="ruta-vacia">Agrega ítems para ver la ruta óptima</div>' +
+        '</div>' +
+      '</div>' +
+
+    '</div>';
+
+  // Cerrar dropdown al hacer clic fuera
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#lista-input') && !e.target.closest('#lista-dropdown')) {
+      listaCerrarDropdown();
+    }
+  }, { once: false });
+}
+
+// ══════════════════════════════════════════════════════════════
+inicializar();
+
+// ══════════════════════════════════════════════════════════════
+// ARRANQUE
+// ══════════════════════════════════════════════════════════════
+cargarDatos()
+  .then(function() {
+    // Ocultar overlay, mostrar app
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('summaryBar').style.display = '';
+    document.getElementById('sheetsContainer').style.display = '';
+    document.getElementById('header-sub').textContent =
+      'Cancún · v30 · ' + TICKETS.length + ' tickets · ' + CATALOGO.length + ' en catálogo';
+    inicializar();
+  })
+  .catch(function(err) {
+    var ol = document.getElementById('loading-overlay');
+    if (ol) ol.innerHTML =
+      '<div style="text-align:center;padding:32px;max-width:420px;">' +
+      '<div style="font-size:32px;margin-bottom:16px;">⚠️</div>' +
+      '<div style="font-family:DM Serif Display,serif;font-size:20px;color:var(--accent);margin-bottom:12px;">Error al cargar datos</div>' +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">' + err.message + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);">Revisa que el Google Sheet esté publicado como CSV y que los GIDs sean correctos.</div>' +
+      '</div>';
+    console.error('cargarDatos error:', err);
+  });
+</script>
+</body>
+</html>
