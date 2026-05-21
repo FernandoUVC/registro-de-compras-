@@ -1062,11 +1062,14 @@ function listaIniciarSync() {
 }
 
 // Arrancar sync cuando Firebase esté listo
-if (window._fbListo) {
-  listaIniciarSync();
-} else {
-  document.addEventListener('firebase-listo', listaIniciarSync);
-}  
+function intentarSync() {
+  if (window._fbListen) {
+    listaIniciarSync();
+  } else {
+    setTimeout(intentarSync, 200);
+  }
+}
+intentarSync();
 // ── RENDER ITEMS ─────────────────────────────────────────────
 
 function listaRenderItems() {
