@@ -4,6 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🛒 Compras Inteligentes</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDkPuXF9YnKDWcserGgR0S2guPbaXgghwc",
+    authDomain: "compras-visor.firebaseapp.com",
+    databaseURL: "https://compras-visor-default-rtdb.firebaseio.com",
+    projectId: "compras-visor",
+    storageBucket: "compras-visor.firebasestorage.app",
+    messagingSenderId: "29245001509",
+    appId: "1:29245001509:web:de0ad152d51f88b949d4cc"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const listaRef = ref(db, 'lista');
+
+  // Expone funciones al scope global para que el resto del HTML las use
+  window._fbSet    = (items) => set(listaRef, items);
+  window._fbRemove = () => remove(listaRef);
+  window._fbListen = (cb) => onValue(listaRef, snap => cb(snap.val()));
+
+  // Señal de que Firebase está listo
+  window._fbListo = true;
+  document.dispatchEvent(new Event('firebase-listo'));
+</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -983,6 +1010,7 @@ function listaAgregar(nombre) {
   });
   if (!yaExiste) {
     listaItems.push({ id: Date.now(), nombre: nombre, expandido: false, checked: false });
+    listaGuardar();
   }
   var input = document.getElementById('lista-input');
   if (input) { input.value = ''; input.focus(); }
@@ -990,7 +1018,6 @@ function listaAgregar(nombre) {
   listaRenderItems();
   listaRenderRuta();
 }
-
 function listaToggleExpand(id) {
   var item = listaItems.find(function(i) { return i.id === id; });
   if (item) item.expandido = !item.expandido;
@@ -999,23 +1026,47 @@ function listaToggleExpand(id) {
 
 function listaToggleCheck(id) {
   var item = listaItems.find(function(i) { return i.id === id; });
-  if (item) item.checked = !item.checked;
+  if (item) { item.checked = !item.checked; listaGuardar(); }
   listaRenderItems();
   listaRenderRuta();
 }
 
 function listaEliminar(id) {
   listaItems = listaItems.filter(function(i) { return i.id !== id; });
+  listaGuardar();
   listaRenderItems();
   listaRenderRuta();
 }
 
 function listaLimpiar() {
   listaItems = [];
+  if (window._fbRemove) window._fbRemove();
   listaRenderItems();
   listaRenderRuta();
 }
 
+function listaGuardar() {
+  if (!window._fbSet) return;
+  // Firebase no acepta arrays vacíos — mandar null para limpiar
+  window._fbSet(listaItems.length ? listaItems : null);
+}
+
+function listaIniciarSync() {
+  if (!window._fbListen) return;
+  window._fbListen(function(data) {
+    // data es null si la lista está vacía, o el array guardado
+    listaItems = data ? Object.values(data) : [];
+    listaRenderItems();
+    listaRenderRuta();
+  });
+}
+
+// Arrancar sync cuando Firebase esté listo
+if (window._fbListo) {
+  listaIniciarSync();
+} else {
+  document.addEventListener('firebase-listo', listaIniciarSync);
+}  
 // ── RENDER ITEMS ─────────────────────────────────────────────
 
 function listaRenderItems() {
