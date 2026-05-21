@@ -314,7 +314,7 @@ function mapearTicket(row) {
     producto:     row.producto     || '',
     categoria:    row.categoria    || '',
     presentacion: row.presentacion || '',
-    precio:       parseFloat(row.precio) || 0,
+    precio:       parsearNumero(row.precio),
     cantidad:     parseInt(row.cantidad) || 1,
     notas:        row.notas        || '',
     tipo:         row.tipo         || 'compra',
@@ -328,7 +328,7 @@ function mapearCatalogo(row) {
     presentacion: row.presentacion || '',
     tienda:       row.tienda       || '',
     ciudad:       row.ciudad       || '',
-    precio:       parseFloat(row.precio) || 0,
+    precio:       parsearNumero(row.precio),
     precioUnidad: row.precioUnidad || '',
     notas:        row.notas        || '',
   };
@@ -339,8 +339,8 @@ function mapearSesion(row) {
     tienda:          row.tienda          || '',
     etiquetaOriginal:row.etiquetaOriginal|| '',
     fecha:           row.fecha           || '',
-    total:           parseFloat(row.total)  || 0,
-    ahorro:          parseFloat(row.ahorro) || 0,
+    total:           parsearNumero(row.total),
+    ahorro:          parsearNumero(row.ahorro),
     notas:           row.notas           || '',
   };
 }
@@ -352,6 +352,42 @@ function setLoadingMsg(msg, pct) {
   if (bar) bar.style.width = pct + '%';
 }
 
+
+// Convierte cualquier formato numérico que pueda venir del CSV de Google Sheets:
+// "1,504.00" | "1.504,00" | "$165" | "165,00" | "165.00" | "1504" → número JS
+function parsearNumero(valor) {
+  if (valor === null || valor === undefined || valor === '') return 0;
+  var s = String(valor).trim();
+  // Quitar símbolo de moneda y espacios
+  s = s.replace(/[$€\s]/g, '');
+  if (s === '' || s === '-') return 0;
+  // Detectar formato europeo: coma como decimal, punto como miles
+  // Ej: "1.504,50" → tiene punto Y coma, y la coma va después del punto
+  var tieneP = s.indexOf('.') !== -1;
+  var tieneC = s.indexOf(',') !== -1;
+  if (tieneP && tieneC) {
+    if (s.lastIndexOf('.') < s.lastIndexOf(',')) {
+      // Formato europeo: "1.504,50" → quitar puntos, cambiar coma por punto
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Formato anglosajón: "1,504.50" → solo quitar comas
+      s = s.replace(/,/g, '');
+    }
+  } else if (tieneC && !tieneP) {
+    // Solo coma: puede ser decimal europeo "165,50" o miles "1,504"
+    var partes = s.split(',');
+    if (partes.length === 2 && partes[1].length <= 2) {
+      // Decimal europeo: "165,50" → "165.50"
+      s = s.replace(',', '.');
+    } else {
+      // Miles anglosajón: "1,504" → "1504"
+      s = s.replace(/,/g, '');
+    }
+  }
+  // En este punto solo debe quedar dígitos y un punto decimal
+  var n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
 
 function mapearTienda(row) {
   // Columnas esperadas en el sheet: clave, etiqueta, color, emoji
