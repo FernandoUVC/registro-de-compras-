@@ -1063,13 +1063,14 @@ function listaIniciarSync() {
 
 // Arrancar sync cuando Firebase esté listo
 function intentarSync() {
-  if (window._fbListen) {
+  if (window._fbListen && document.getElementById('lista-items-cont')) {
     listaIniciarSync();
   } else {
     setTimeout(intentarSync, 200);
   }
 }
-intentarSync();
+// Esperar a que inicializar() haya construido el DOM
+setTimeout(intentarSync, 800);
 // ── RENDER ITEMS ─────────────────────────────────────────────
 
 function listaRenderItems() {
