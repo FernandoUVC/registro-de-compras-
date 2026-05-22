@@ -1054,8 +1054,7 @@ function listaGuardar() {
 function listaIniciarSync() {
   if (!window._fbListen) return;
   window._fbListen(function(data) {
-    // data es null si la lista está vacía, o el array guardado
-    listaItems = data ? Object.values(data) : [];
+    listaItems = data ? Object.keys(data).map(function(k) { return data[k]; }) : [];
     listaRenderItems();
     listaRenderRuta();
   });
@@ -1249,6 +1248,7 @@ function renderModuloLista() {
       listaCerrarDropdown();
     }
   }, { once: false });
+  intentarSync();
 }
 
 // ══════════════════════════════════════════════════════════════
