@@ -262,7 +262,8 @@ const SHEET_GIDS = {
   tickets:  '181481044',
   catalogo: '1890416397',
   sesiones: '65837170',
-  tiendas:  '293987536',
+  tiendas:    '293987536',
+  categorias: '1020242528',
 };
 
 // CONFIG_TIENDAS — se carga desde Google Sheets al iniciar
@@ -619,6 +620,7 @@ function renderTablaTickets(filtroTexto, filtroTienda) {
       '<td style="color:var(--text3)">' + ticket.ciudad + '</td>' +
       '<td style="font-weight:500;max-width:240px">' + ticket.producto + '</td>' +
       '<td style="color:var(--text3);font-size:11px">' + ticket.categoria + '</td>' +
+      '<td style="color:var(--text3);font-size:11px">' + (ticket.subcategoria || '') + '</td>' +
       '<td class="price-cell">' + formatearPrecio(ticket.precio) + '</td>' +
       '<td style="color:var(--text3)">' + ticket.cantidad + '</td>' +
       '<td><span class="' + obtenerClaseNota(ticket.notas) + '">' + (ticket.notas || '') + '</span></td>' +
@@ -626,7 +628,7 @@ function renderTablaTickets(filtroTexto, filtroTienda) {
   });
 
   return { conteo: { compras: conteo, obs: datos.filter(function(t){return t.tipo==='observacion';}).length }, html: '<table>' +
-    '<thead><tr><th>Fecha</th><th>Tienda</th><th>Ciudad</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Cant.</th><th>Notas</th></tr></thead>' +
+    '<thead><tr><th>Fecha</th><th>Tienda</th><th>Ciudad</th><th>Producto</th><th>Categoría</th><th>Subcategoría</th><th>Precio</th><th>Cant.</th><th>Notas</th></tr></thead>' +
     '<tbody>' + filas + '</tbody></table>' };
 }
 
@@ -650,6 +652,7 @@ function renderTablaCatalogo(filtroTexto, filtroTienda) {
     return '<tr class="row-' + clave + '">' +
       '<td style="font-weight:500;max-width:240px">' + p.producto + '</td>' +
       '<td style="color:var(--text3);font-size:11px">' + p.categoria + '</td>' +
+      '<td style="color:var(--text3);font-size:11px">' + (p.subcategoria || '') + '</td>' +
       '<td style="color:var(--text3)">' + p.presentacion + '</td>' +
       '<td>' + renderBadgeTienda(clave) + '</td>' +
       '<td style="color:var(--text3)">' + p.ciudad + '</td>' +
@@ -660,7 +663,7 @@ function renderTablaCatalogo(filtroTexto, filtroTienda) {
   }).join('');
 
   return { conteo: datos.length, html: '<table>' +
-    '<thead><tr><th>Producto</th><th>Categoría</th><th>Presentación</th><th>Tienda</th><th>Ciudad</th><th>Precio</th><th>Precio/unidad</th><th>Notas</th></tr></thead>' +
+    '<thead><tr><th>Producto</th><th>Categoría</th><th>Subcategoría</th><th>Presentación</th><th>Tienda</th><th>Ciudad</th><th>Precio</th><th>Precio/unidad</th><th>Notas</th></tr></thead>' +
     '<tbody>' + filas + '</tbody></table>' };
 }
 
