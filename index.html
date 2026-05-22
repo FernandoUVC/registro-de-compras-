@@ -340,6 +340,7 @@ function mapearTicket(row) {
     ciudad:       row.ciudad       || '',
     producto:     row.producto     || '',
     categoria:    row.categoria    || '',
+    subcategoria: row.subcategoria || '',
     presentacion: row.presentacion || '',
     precio:       parsearNumero(row.precio),
     cantidad:     parseInt(row.cantidad) || 1,
@@ -352,6 +353,7 @@ function mapearCatalogo(row) {
   return {
     producto:     row.producto     || '',
     categoria:    row.categoria    || '',
+    subcategoria: row.subcategoria || '',
     presentacion: row.presentacion || '',
     tienda:       row.tienda       || '',
     ciudad:       row.ciudad       || '',
@@ -582,7 +584,7 @@ function renderTablaTickets(filtroTexto, filtroTienda) {
   if (filtroTexto) {
     var txt = filtroTexto.toLowerCase();
     datos = datos.filter(function(t) {
-      return [t.producto, t.categoria, t.ciudad, t.notas].join(' ').toLowerCase().includes(txt);
+      return [t.producto, t.categoria, t.subcategoria, t.ciudad, t.notas].join(' ').toLowerCase().includes(txt);
     });
   }
 
@@ -635,7 +637,7 @@ function renderTablaCatalogo(filtroTexto, filtroTienda) {
   if (filtroTexto) {
     var txt = filtroTexto.toLowerCase();
     datos = datos.filter(function(p) {
-      return [p.producto, p.categoria, p.ciudad, p.notas].join(' ').toLowerCase().includes(txt);
+      return [p.producto, p.categoria, p.subcategoria, p.ciudad, p.notas].join(' ').toLowerCase().includes(txt);
     });
   }
 
