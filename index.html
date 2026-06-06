@@ -1522,7 +1522,14 @@ function regProductoInput(idx, valor) {
   regAcItems = CATALOGO.filter(function(p) {
     return p.producto.toLowerCase().includes(norm);
   }).slice(0, 7);
-  if (!regAcItems.length) { dd.style.display='none'; return; }
+  if (!regAcItems.length) {
+    dd.innerHTML = '<div onmousedown="regNuevoProducto(' + idx + ',\'' + valor.replace(/'/g,"\\'") + '\')" ' +
+      'style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:6px;">' +
+      '＋ Agregar <strong style=\'margin:0 4px;\'>"' + valor + '"</strong> como producto nuevo' +
+    '</div>';
+    dd.style.display = 'block';
+    return;
+  }
   var hayExacto = regAcItems.some(function(p) {
     return p.producto.toLowerCase() === norm;
   });
