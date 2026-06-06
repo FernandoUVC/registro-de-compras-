@@ -1824,7 +1824,31 @@ function regPickerToggle(nombre) {
 
 function regRefreshPicker() {
   var overlay = document.getElementById('reg-picker-overlay');
-  if (overlay) overlay.innerHTML = regPickerHTML();
+  if (!overlay) return;
+
+  var prods = pickerFiltrar();
+  var itemsHTML = prods.map(function(p) {
+    var sel = pickerSeleccionados.indexOf(p.producto) !== -1;
+    var cls = 'picker-item' + (sel ? ' selected' : '');
+    return '<div class="' + cls + '" onclick="regPickerToggle(\'' + p.producto.replace(/'/g,"\\'") + '\')">' +
+      '<span class="picker-item-emoji">' + pickerGetEmoji(p.categoria) + '</span>' +
+      '<span class="picker-item-nombre">' + p.producto + '</span>' +
+      '<span class="picker-item-check">' + (sel ? '✓' : '') + '</span>' +
+    '</div>';
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">Sin resultados</div>';
+
+  var grid = overlay.querySelector('.picker-grid');
+  if (grid) grid.innerHTML = itemsHTML;
+
+  var count = overlay.querySelector('.picker-count');
+  if (count) count.textContent = pickerSeleccionados.length > 0 ? pickerSeleccionados[0] : 'Selecciona un producto';
+
+  var btn = overlay.querySelector('.picker-btn-add');
+  if (btn) btn.disabled = pickerSeleccionados.length === 0;
+
+  overlay.querySelectorAll('.picker-cat').forEach(function(el) {
+    el.classList.toggle('active', el.textContent === pickerCatActiva);
+  });
 }
 
 function regConfirmarPicker() {
