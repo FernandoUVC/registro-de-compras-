@@ -1523,6 +1523,9 @@ function regProductoInput(idx, valor) {
     return p.producto.toLowerCase().includes(norm);
   }).slice(0, 7);
   if (!regAcItems.length) { dd.style.display='none'; return; }
+  var hayExacto = regAcItems.some(function(p) {
+    return p.producto.toLowerCase() === norm;
+  });
   dd.innerHTML = regAcItems.map(function(p, i) {
     return '<div class="ldd-item" data-i="' + i + '" ' +
       'onmousedown="regSeleccionarProducto(' + idx + ',' + i + ')" ' +
@@ -1531,9 +1534,114 @@ function regProductoInput(idx, valor) {
       '<span style="color:var(--text3);font-size:10px;margin-left:6px;">' + p.categoria + '</span>' +
     '</div>';
   }).join('');
+  if (!hayExacto) {
+    dd.innerHTML += '<div onmousedown="regNuevoProducto(' + idx + ',\'' + valor.replace(/'/g,"\\'") + '\')" ' +
+      'style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--accent);border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;">' +
+      '＋ Agregar <strong style=\'margin:0 4px;\'>"' + valor + '"</strong> como producto nuevo' +
+    '</div>';
+  }
   dd.style.display = 'block';
 }
 
+function regNuevoProducto(itemIdx, nombre) {
+  // Cerrar dropdown
+  var dd = document.getElementById('reg-ac-' + itemIdx);
+  if (dd) dd.style.display = 'none';
+
+  // Construir opciones de categoría
+  var cats = Object.keys(
+    CATALOGO.reduce(function(acc, p) { acc[p.categoria] = 1; return acc; }, {})
+  ).sort();
+  // Agregar categorías del diccionario que no estén en catálogo
+  ['Frutas y Verduras','Carnes y Pescados','Lácteos','Panadería','Alimentos secos',
+   'Conservas y Salsas','Snacks','Bebidas','Congelados','Higiene','Cosméticos',
+   'Hogar','Farmacia','Mascotas','Electrónica','Ferretería','Ropa y calzado',
+   'Papelería','Flores y Plantas','Autos','Servicios','Varios'].forEach(function(c) {
+    if (cats.indexOf(c) === -1) cats.push(c);
+  });
+
+  var catOpts = cats.map(function(c) {
+    return '<option value="' + c + '">' + pickerGetEmoji(c) + ' ' + c + '</option>';
+  }).join('');
+
+  // Mini modal
+  var mini = document.createElement('div');
+  mini.id = 'reg-nuevo-overlay';
+  mini.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:800;display:flex;align-items:center;justify-content:center;padding:16px;';
+  mini.innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:400px;overflow:hidden;">' +
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);">' +
+        '<div style="font-family:\'DM Serif Display\',serif;font-size:18px;color:var(--accent);">＋ Producto nuevo</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Solo lo esencial — puedes enriquecer el catálogo después</div>' +
+      '</div>' +
+      '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Nombre del producto</label>' +
+          '<input class="reg-input" id="nuevo-nombre" value="' + nombre.replace(/"/g,'&quot;') + '">' +
+        '</div>' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Categoría</label>' +
+          '<select class="reg-select" id="nuevo-cat" onchange="regNuevoSubcats(this.value)">' +
+            catOpts +
+          '</select>' +
+        '</div>' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Subcategoría</label>' +
+          '<input class="reg-input" id="nuevo-subcat" placeholder="Opcional">' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">' +
+        '<button class="reg-btn-cancel" onclick="document.getElementById(\'reg-nuevo-overlay\').remove()">Cancelar</button>' +
+        '<button class="reg-btn-confirm" onclick="regConfirmarNuevo(' + itemIdx + ')">Agregar rápido</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(mini);
+}
+
+function regNuevoSubcats(cat) {
+  // Sugerir subcategorías existentes para esa categoría
+  var subs = CATALOGO
+    .filter(function(p) { return p.categoria === cat && p.subcategoria; })
+    .map(function(p) { return p.subcategoria; });
+  subs = subs.filter(function(v, i) { return subs.indexOf(v) === i; }).sort();
+  var input = document.getElementById('nuevo-subcat');
+  if (input && subs.length) input.placeholder = subs.join(' · ');
+}
+
+function regConfirmarNuevo(itemIdx) {
+  var nombre = document.getElementById('nuevo-nombre').value.trim();
+  var cat    = document.getElementById('nuevo-cat').value;
+  var subcat = document.getElementById('nuevo-subcat').value.trim();
+  if (!nombre) { alert('El nombre no puede estar vacío'); return; }
+
+  // Actualizar el ítem del ticket
+  regItems[itemIdx].producto     = nombre;
+  regItems[itemIdx].categoria    = cat;
+  regItems[itemIdx].subcategoria = subcat;
+  regItems[itemIdx].confianza    = 'alta';
+
+  // Cerrar mini modal
+  var mini = document.getElementById('reg-nuevo-overlay');
+  if (mini) mini.remove();
+
+  // Refrescar visual del ítem
+  var el = document.getElementById('reg-item-' + itemIdx);
+  if (el) {
+    el.querySelector('.reg-item-nombre').textContent = nombre;
+    var inputs = el.querySelectorAll('input');
+    inputs[0].value = nombre;
+    inputs[1].value = cat;
+    if (inputs[3]) inputs[3].value = subcat;
+    el.classList.remove('ambiguo');
+    var badge = el.querySelector('.reg-item-badge');
+    if (badge) { badge.textContent = '✅ OK'; badge.className = 'reg-item-badge alta'; }
+    var btnId = el.querySelector('.reg-item-resolver');
+    if (btnId) btnId.remove();
+  }
+
+  regRefreshFooter();
+}
+  
 function regSeleccionarProducto(itemIdx, acIdx) {
   var prod = regAcItems[acIdx];
   if (!prod) return;
