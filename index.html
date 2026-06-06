@@ -1677,7 +1677,7 @@ function regRenderItems() {
       '<div class="reg-item-header">' +
         '<span class="reg-item-nombre">' + item.producto + '</span>' +
         '<span class="reg-item-badge ' + item.confianza + '">' + (ambiguo ? '⚠️ Ambiguo' : '✅ OK') + '</span>' +
-        (ambiguo ? '<button class="reg-item-resolver" onclick="regResolverItem(' + idx + ')">Identificar</button>' : '') +
+        '<button class="reg-item-resolver" onclick="regResolverItem(' + idx + ')">Identificar</button>' +
       '</div>' +
       '<div class="reg-item-fields">' +
         '<div class="reg-field" style="position:relative;">' +
