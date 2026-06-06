@@ -247,6 +247,37 @@
   .picker-btn-cancel { background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer; }
   .picker-add-btn-inline { background:var(--surface2);border:1px solid var(--border);color:var(--accent);border-radius:8px;padding:5px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;margin-left:8px; }
   .picker-add-btn-inline:hover { background:var(--accent);color:#000;border-color:var(--accent); }
+  /* Modal registro de ticket */
+  .reg-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto; }
+  .reg-modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:620px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden; }
+  .reg-header { padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0; }
+  .reg-title { font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent);margin-bottom:4px; }
+  .reg-subtitle { font-size:11px;color:var(--text3); }
+  .reg-body { overflow-y:auto;flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:14px; }
+  .reg-section-title { font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px; }
+  .reg-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+  .reg-field { display:flex;flex-direction:column;gap:4px; }
+  .reg-label { font-size:11px;color:var(--text3); }
+  .reg-input { background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%; }
+  .reg-input:focus { border-color:var(--accent); }
+  .reg-select { background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;cursor:pointer; }
+  .reg-textarea { background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;min-height:80px;resize:vertical; }
+  .reg-textarea:focus { border-color:var(--accent); }
+  .reg-parse-btn { background:var(--accent);color:#000;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;align-self:flex-end; }
+  .reg-items { display:flex;flex-direction:column;gap:8px; }
+  .reg-item { background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px; }
+  .reg-item.ambiguo { border-color:#f5a623;background:rgba(245,166,35,0.06); }
+  .reg-item-header { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+  .reg-item-nombre { font-size:13px;font-weight:500;flex:1; }
+  .reg-item-badge { font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600; }
+  .reg-item-badge.alta { background:rgba(76,175,125,0.15);color:#4caf7d; }
+  .reg-item-badge.baja { background:rgba(245,166,35,0.15);color:#f5a623; }
+  .reg-item-fields { display:grid;grid-template-columns:1fr 1fr 80px;gap:8px; }
+  .reg-item-resolver { background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer; }
+  .reg-footer { padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:10px; }
+  .reg-btn-cancel { background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer; }
+  .reg-btn-confirm { background:var(--accent);color:#000;border:none;border-radius:10px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer; }
+  .reg-btn-confirm:disabled { opacity:0.35;cursor:not-allowed; }
   
   /* Botón limpiar lista */
   .lista-clear-btn { background: transparent; border: 1px solid var(--border); color: var(--text3); padding: 5px 13px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.2s; }
@@ -1365,6 +1396,361 @@ function renderModuloLista() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// MÓDULO: REGISTRO DE TICKET
+// ══════════════════════════════════════════════════════════════
+var regItems = [];
+var regMeta  = {};
+var regPickerIdx = null; // índice del ítem que está resolviendo el picker
+
+function registroAbrir() {
+  var overlay = document.createElement('div');
+  overlay.className = 'reg-overlay';
+  overlay.id = 'reg-overlay';
+  overlay.innerHTML = regRenderModal();
+  document.body.appendChild(overlay);
+}
+
+function regRenderModal() {
+  var tiendaOpts = Object.values(CONFIG_TIENDAS).map(function(t) {
+    var sel = regMeta.tienda === t.clave ? ' selected' : '';
+    return '<option value="' + t.clave + '"' + sel + '>' + t.emoji + ' ' + t.etiqueta + '</option>';
+  }).join('');
+
+  var hoy = new Date();
+  var fechaDefault = regMeta.fecha || (
+    String(hoy.getDate()).padStart(2,'0') + '/' +
+    String(hoy.getMonth()+1).padStart(2,'0') + '/' +
+    hoy.getFullYear()
+  );
+
+  var itemsHTML = regItems.length ? regRenderItems() :
+    '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;">Pega el JSON del ticket arriba y presiona Parsear</div>';
+
+  var ambiguos = regItems.filter(function(it) { return it.confianza === 'baja'; }).length;
+  var confirmDisabled = regItems.length === 0 || ambiguos > 0 ? ' disabled' : '';
+  var confirmLabel = ambiguos > 0
+    ? 'Resuelve ' + ambiguos + ' ítem' + (ambiguos>1?'s':'') + ' primero'
+    : 'Guardar en Firebase (' + regItems.length + ' ítems)';
+
+  return '<div class="reg-modal">' +
+    '<div class="reg-header">' +
+      '<div class="reg-title">📋 Registrar ticket</div>' +
+      '<div class="reg-subtitle">Pega el JSON generado por Claude y revisa cada ítem</div>' +
+    '</div>' +
+    '<div class="reg-body">' +
+
+      // Sección 1: JSON input
+      '<div>' +
+        '<div class="reg-section-title">1. JSON del ticket</div>' +
+        '<textarea class="reg-textarea" id="reg-json-input" placeholder=\'{"tipo":"ticket","tienda":"walmart","fecha":"01/06/2026","total":350,"ahorro":0,"notas":"","items":[...]}\'></textarea>' +
+        '<div style="display:flex;justify-content:flex-end;margin-top:6px;">' +
+          '<button class="reg-parse-btn" onclick="regParsear()">⚡ Parsear</button>' +
+        '</div>' +
+      '</div>' +
+
+      // Sección 2: Datos generales (editables)
+      '<div id="reg-meta-section" style="' + (regItems.length ? '' : 'display:none') + '">' +
+        '<div class="reg-section-title">2. Datos generales</div>' +
+        '<div class="reg-row">' +
+          '<div class="reg-field">' +
+            '<label class="reg-label">Tienda</label>' +
+            '<select class="reg-select" id="reg-tienda" onchange="regMeta.tienda=this.value">' +
+              tiendaOpts +
+            '</select>' +
+          '</div>' +
+          '<div class="reg-field">' +
+            '<label class="reg-label">Fecha</label>' +
+            '<input class="reg-input" id="reg-fecha" type="text" value="' + fechaDefault + '" placeholder="DD/MM/AAAA" onchange="regMeta.fecha=this.value">' +
+          '</div>' +
+        '</div>' +
+        '<div class="reg-row" style="margin-top:8px;">' +
+          '<div class="reg-field">' +
+            '<label class="reg-label">Total pagado</label>' +
+            '<input class="reg-input" id="reg-total" type="number" value="' + (regMeta.total||'') + '" placeholder="0.00" onchange="regMeta.total=parseFloat(this.value)||0">' +
+          '</div>' +
+          '<div class="reg-field">' +
+            '<label class="reg-label">Ahorro</label>' +
+            '<input class="reg-input" id="reg-ahorro" type="number" value="' + (regMeta.ahorro||'') + '" placeholder="0.00" onchange="regMeta.ahorro=parseFloat(this.value)||0">' +
+          '</div>' +
+        '</div>' +
+        '<div class="reg-field" style="margin-top:8px;">' +
+          '<label class="reg-label">Notas de la sesión</label>' +
+          '<input class="reg-input" id="reg-notas" type="text" value="' + (regMeta.notas||'') + '" placeholder="Ej: cupón aplicado, 3 artículos en promo" onchange="regMeta.notas=this.value">' +
+        '</div>' +
+      '</div>' +
+
+      // Sección 3: Ítems
+      '<div id="reg-items-section" style="' + (regItems.length ? '' : 'display:none') + '">' +
+        '<div class="reg-section-title">3. Ítems (' + regItems.length + ')</div>' +
+        '<div class="reg-items" id="reg-items-cont">' + itemsHTML + '</div>' +
+      '</div>' +
+
+    '</div>' +
+    '<div class="reg-footer">' +
+      '<button class="reg-btn-cancel" onclick="regCerrar()">Cancelar</button>' +
+      '<button class="reg-btn-confirm"' + confirmDisabled + ' onclick="regConfirmar()" id="reg-btn-confirm">' + confirmLabel + '</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function regRenderItems() {
+  return regItems.map(function(item, idx) {
+    var ambiguo = item.confianza === 'baja';
+    return '<div class="reg-item' + (ambiguo ? ' ambiguo' : '') + '" id="reg-item-' + idx + '">' +
+      '<div class="reg-item-header">' +
+        '<span class="reg-item-nombre">' + item.producto + '</span>' +
+        '<span class="reg-item-badge ' + item.confianza + '">' + (ambiguo ? '⚠️ Ambiguo' : '✅ OK') + '</span>' +
+        (ambiguo ? '<button class="reg-item-resolver" onclick="regResolverItem(' + idx + ')">Identificar</button>' : '') +
+      '</div>' +
+      '<div class="reg-item-fields">' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Producto</label>' +
+          '<input class="reg-input" value="' + item.producto.replace(/"/g,'&quot;') + '" onchange="regItems[' + idx + '].producto=this.value;regRefreshFooter()">' +
+        '</div>' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Categoría</label>' +
+          '<input class="reg-input" value="' + (item.categoria||'') + '" onchange="regItems[' + idx + '].categoria=this.value">' +
+        '</div>' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Precio</label>' +
+          '<input class="reg-input" type="number" value="' + item.precio + '" onchange="regItems[' + idx + '].precio=parseFloat(this.value)||0">' +
+        '</div>' +
+      '</div>' +
+      '<div class="reg-item-fields">' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Subcategoría</label>' +
+          '<input class="reg-input" value="' + (item.subcategoria||'') + '" onchange="regItems[' + idx + '].subcategoria=this.value">' +
+        '</div>' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Presentación</label>' +
+          '<input class="reg-input" value="' + (item.presentacion||'') + '" onchange="regItems[' + idx + '].presentacion=this.value">' +
+        '</div>' +
+        '<div class="reg-field">' +
+          '<label class="reg-label">Cant.</label>' +
+          '<input class="reg-input" type="number" value="' + (item.cantidad||1) + '" onchange="regItems[' + idx + '].cantidad=parseInt(this.value)||1">' +
+        '</div>' +
+      '</div>' +
+      '<div class="reg-field">' +
+        '<label class="reg-label">Notas</label>' +
+        '<input class="reg-input" value="' + (item.notas||'').replace(/"/g,'&quot;') + '" onchange="regItems[' + idx + '].notas=this.value">' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function regParsear() {
+  var txt = document.getElementById('reg-json-input').value.trim();
+  try {
+    var data = JSON.parse(txt);
+    regMeta = {
+      tipo:   data.tipo   || 'ticket',
+      tienda: data.tienda || '',
+      fecha:  data.fecha  || '',
+      total:  data.total  || 0,
+      ahorro: data.ahorro || 0,
+      notas:  data.notas  || '',
+    };
+    regItems = (data.items || []).map(function(it) {
+      return {
+        producto:     it.producto     || '',
+        categoria:    it.categoria    || '',
+        subcategoria: it.subcategoria || '',
+        presentacion: it.presentacion || '',
+        precio:       it.precio       || 0,
+        cantidad:     it.cantidad     || 1,
+        notas:        it.notas        || '',
+        tipo:         it.tipo         || 'compra',
+        confianza:    it.confianza    || 'alta',
+      };
+    });
+    regRefreshModal();
+  } catch(e) {
+    alert('JSON inválido. Revisa que esté bien formado.\n\n' + e.message);
+  }
+}
+
+function regRefreshModal() {
+  var overlay = document.getElementById('reg-overlay');
+  if (overlay) overlay.innerHTML = regRenderModal();
+}
+
+function regRefreshFooter() {
+  var ambiguos = regItems.filter(function(it) { return it.confianza === 'baja'; }).length;
+  var btn = document.getElementById('reg-btn-confirm');
+  if (!btn) return;
+  btn.disabled = regItems.length === 0 || ambiguos > 0;
+  btn.textContent = ambiguos > 0
+    ? 'Resuelve ' + ambiguos + ' ítem' + (ambiguos>1?'s':'') + ' primero'
+    : 'Guardar en Firebase (' + regItems.length + ' ítems)';
+}
+
+function regResolverItem(idx) {
+  regPickerIdx = idx;
+  // Reutilizar el picker existente pero en modo "resolver ambigüedad"
+  pickerSeleccionados = [];
+  pickerCatActiva = regItems[idx].categoria || 'Todos';
+  pickerBusqueda = '';
+  var overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.id = 'reg-picker-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) regCerrarPicker(); };
+  overlay.innerHTML = regPickerHTML();
+  document.body.appendChild(overlay);
+}
+
+function regPickerHTML() {
+  // Igual que pickerRenderHTML pero el botón confirma en regConfirmarPicker
+  var cats = pickerCategorias();
+  var prods = pickerFiltrar();
+
+  var catsHTML = cats.map(function(c) {
+    return '<button class="picker-cat' + (c === pickerCatActiva ? ' active' : '') +
+      '" onclick="pickerCatActiva=\'' + c.replace(/'/g,"\\'") + '\';regRefreshPicker()">' + c + '</button>';
+  }).join('');
+
+  var itemsHTML = prods.map(function(p) {
+    var sel = pickerSeleccionados.indexOf(p.producto) !== -1;
+    var cls = 'picker-item' + (sel ? ' selected' : '');
+    return '<div class="' + cls + '" onclick="regPickerToggle(\'' + p.producto.replace(/'/g,"\\'") + '\')">' +
+      '<span class="picker-item-emoji">' + pickerGetEmoji(p.categoria) + '</span>' +
+      '<span class="picker-item-nombre">' + p.producto + '</span>' +
+      '<span class="picker-item-check">' + (sel ? '✓' : '') + '</span>' +
+    '</div>';
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">Sin resultados</div>';
+
+  return '<div class="picker-modal">' +
+    '<div class="picker-header">' +
+      '<div class="picker-title">🔍 ¿Qué producto es este?</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Identificando: <strong>' + (regItems[regPickerIdx]||{}).producto + '</strong></div>' +
+      '<div class="picker-cats">' + catsHTML + '</div>' +
+      '<input class="picker-search" placeholder="Buscar en catálogo…" value="' + pickerBusqueda + '" oninput="pickerBusqueda=this.value;regRefreshPicker()" autocomplete="off">' +
+    '</div>' +
+    '<div class="picker-body"><div class="picker-grid" id="reg-picker-grid">' + itemsHTML + '</div></div>' +
+    '<div class="picker-footer">' +
+      '<span class="picker-count">' + (pickerSeleccionados.length > 0 ? pickerSeleccionados[0] : 'Selecciona un producto') + '</span>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="picker-btn-cancel" onclick="regCerrarPicker()">Cancelar</button>' +
+        '<button class="picker-btn-add" onclick="regConfirmarPicker()" ' + (pickerSeleccionados.length===0?'disabled':'') + '>Confirmar</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function regPickerToggle(nombre) {
+  pickerSeleccionados = [nombre]; // solo uno a la vez
+  regRefreshPicker();
+}
+
+function regRefreshPicker() {
+  var overlay = document.getElementById('reg-picker-overlay');
+  if (overlay) overlay.innerHTML = regPickerHTML();
+}
+
+function regConfirmarPicker() {
+  if (pickerSeleccionados.length === 0 || regPickerIdx === null) return;
+  var nombreElegido = pickerSeleccionados[0];
+  var prod = CATALOGO.find(function(p) { return p.producto === nombreElegido; });
+  if (prod && regItems[regPickerIdx]) {
+    regItems[regPickerIdx].producto     = prod.producto;
+    regItems[regPickerIdx].categoria    = prod.categoria;
+    regItems[regPickerIdx].subcategoria = prod.subcategoria || '';
+    regItems[regPickerIdx].presentacion = prod.presentacion || regItems[regPickerIdx].presentacion;
+    regItems[regPickerIdx].confianza    = 'alta';
+  }
+  regCerrarPicker();
+  regRefreshModal();
+}
+
+function regCerrarPicker() {
+  var o = document.getElementById('reg-picker-overlay');
+  if (o) o.remove();
+  regPickerIdx = null;
+}
+
+function regConfirmar() {
+  if (!window._fbWrite) { alert('Firebase no está listo'); return; }
+  var fecha   = document.getElementById('reg-fecha')  ? document.getElementById('reg-fecha').value  : regMeta.fecha;
+  var tienda  = document.getElementById('reg-tienda') ? document.getElementById('reg-tienda').value : regMeta.tienda;
+  var total   = document.getElementById('reg-total')  ? parseFloat(document.getElementById('reg-total').value)||0  : regMeta.total;
+  var ahorro  = document.getElementById('reg-ahorro') ? parseFloat(document.getElementById('reg-ahorro').value)||0 : regMeta.ahorro;
+  var notas   = document.getElementById('reg-notas')  ? document.getElementById('reg-notas').value  : regMeta.notas;
+
+  var ts = Date.now();
+
+  // Escribir cada ítem en tickets
+  var ticketsNuevos = {};
+  regItems.forEach(function(item, i) {
+    var key = 't_' + ts + '_' + i;
+    ticketsNuevos[key] = {
+      fecha:        fecha,
+      tienda:       tienda,
+      ciudad:       'Puerto Morelos',
+      producto:     item.producto,
+      categoria:    item.categoria,
+      subcategoria: item.subcategoria || '',
+      presentacion: item.presentacion || '',
+      precio:       item.precio,
+      cantidad:     item.cantidad || 1,
+      notas:        item.notas || '',
+      tipo:         item.tipo || 'compra',
+    };
+    // También actualizar catálogo si no existe
+    var yaEnCatalogo = CATALOGO.some(function(c) {
+      return c.producto.toLowerCase() === item.producto.toLowerCase() && c.tienda === tienda;
+    });
+    if (!yaEnCatalogo) {
+      window._fbWrite('catalogo/c_' + ts + '_' + i, {
+        producto:     item.producto,
+        categoria:    item.categoria,
+        subcategoria: item.subcategoria || '',
+        presentacion: item.presentacion || '',
+        tienda:       tienda,
+        ciudad:       'Puerto Morelos',
+        precio:       item.precio,
+        precioUnidad: '',
+        notas:        item.notas || '',
+      });
+    }
+  });
+
+  // Escribir todos los tickets de una vez
+  Object.keys(ticketsNuevos).forEach(function(key) {
+    window._fbWrite('tickets/' + key, ticketsNuevos[key]);
+  });
+
+  // Escribir sesión si es ticket (no observación)
+  if (regMeta.tipo !== 'observacion' && total > 0) {
+    var cfg = CONFIG_TIENDAS[tienda] || {};
+    window._fbWrite('sesiones/s_' + ts, {
+      tienda:           tienda,
+      etiquetaOriginal: cfg.etiqueta || tienda,
+      fecha:            fecha,
+      total:            total,
+      ahorro:           ahorro,
+      notas:            notas || regItems.length + ' artículos',
+    });
+  }
+
+  // Actualizar variables locales
+  regItems.forEach(function(item, i) {
+    var key = 't_' + ts + '_' + i;
+    TICKETS.push(ticketsNuevos[key]);
+  });
+
+  regCerrar();
+  alert('✅ ' + regItems.length + ' ítems guardados en Firebase');
+}
+
+function regCerrar() {
+  var o = document.getElementById('reg-overlay');
+  if (o) o.remove();
+  regItems = [];
+  regMeta  = {};
+  regPickerIdx = null;
+}
+// ══════════════════════════════════════════════════════════════
+  
 inicializar();
 
 // ══════════════════════════════════════════════════════════════
