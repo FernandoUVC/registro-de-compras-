@@ -1466,6 +1466,14 @@ function regRenderModal() {
         '</div>' +
         '<div class="reg-row" style="margin-top:8px;">' +
           '<div class="reg-field">' +
+            '<label class="reg-label">Ciudad</label>' +
+            '<input class="reg-input" id="reg-ciudad" type="text" value="' + (regMeta.ciudad || regInferirCiudad(regMeta.tienda)) + '" placeholder="Cancún / Puerto Morelos" onchange="regMeta.ciudad=this.value">' +
+          '</div>' +
+          '<div class="reg-field">' +
+          '</div>' +
+        '</div>' +
+        '<div class="reg-row" style="margin-top:8px;">' +
+          '<div class="reg-field">' +
             '<label class="reg-label">Total pagado</label>' +
             '<input class="reg-input" id="reg-total" type="number" value="' + (regMeta.total||'') + '" placeholder="0.00" onchange="regMeta.total=parseFloat(this.value)||0">' +
           '</div>' +
@@ -1494,6 +1502,59 @@ function regRenderModal() {
   '</div>';
 }
 
+function regInferirCiudad(tienda) {
+  var pm = ['pachamama', 'chedpm', 'aki'];
+  return pm.indexOf(tienda) !== -1 ? 'Puerto Morelos' : 'Cancún';
+}
+
+// Autocomplete de producto por ítem
+var regAcIdx    = -1;
+var regAcItems  = [];
+var regAcTarget = null;
+
+function regProductoInput(idx, valor) {
+  regItems[idx].producto = valor;
+  regAcTarget = idx;
+  regAcIdx = -1;
+  var norm = valor.toLowerCase().trim();
+  var dd = document.getElementById('reg-ac-' + idx);
+  if (!norm || !dd) { if(dd) dd.style.display='none'; return; }
+  regAcItems = CATALOGO.filter(function(p) {
+    return p.producto.toLowerCase().includes(norm);
+  }).slice(0, 7);
+  if (!regAcItems.length) { dd.style.display='none'; return; }
+  dd.innerHTML = regAcItems.map(function(p, i) {
+    return '<div class="ldd-item" data-i="' + i + '" ' +
+      'onmousedown="regSeleccionarProducto(' + idx + ',' + i + ')" ' +
+      'style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);">' +
+      '<span style="margin-right:6px;">' + pickerGetEmoji(p.categoria) + '</span>' + p.producto +
+      '<span style="color:var(--text3);font-size:10px;margin-left:6px;">' + p.categoria + '</span>' +
+    '</div>';
+  }).join('');
+  dd.style.display = 'block';
+}
+
+function regSeleccionarProducto(itemIdx, acIdx) {
+  var prod = regAcItems[acIdx];
+  if (!prod) return;
+  regItems[itemIdx].producto     = prod.producto;
+  regItems[itemIdx].categoria    = prod.categoria;
+  regItems[itemIdx].subcategoria = prod.subcategoria || '';
+  regItems[itemIdx].presentacion = prod.presentacion || regItems[itemIdx].presentacion;
+  regItems[itemIdx].confianza    = 'alta';
+  // Actualizar campos en el DOM sin re-renderizar todo
+  var el = document.getElementById('reg-item-' + itemIdx);
+  if (el) {
+    el.querySelector('.reg-item-nombre').textContent = prod.producto;
+    el.querySelectorAll('input')[0].value = prod.producto;
+    el.querySelectorAll('input')[1].value = prod.categoria;
+    el.querySelectorAll('input')[3].value = prod.subcategoria || '';
+  }
+  var dd = document.getElementById('reg-ac-' + itemIdx);
+  if (dd) dd.style.display = 'none';
+  regRefreshFooter();
+}
+  
 function regRenderItems() {
   return regItems.map(function(item, idx) {
     var ambiguo = item.confianza === 'baja';
@@ -1504,9 +1565,13 @@ function regRenderItems() {
         (ambiguo ? '<button class="reg-item-resolver" onclick="regResolverItem(' + idx + ')">Identificar</button>' : '') +
       '</div>' +
       '<div class="reg-item-fields">' +
-        '<div class="reg-field">' +
+        '<div class="reg-field" style="position:relative;">' +
           '<label class="reg-label">Producto</label>' +
-          '<input class="reg-input" value="' + item.producto.replace(/"/g,'&quot;') + '" onchange="regItems[' + idx + '].producto=this.value;regRefreshFooter()">' +
+          '<input class="reg-input" value="' + item.producto.replace(/"/g,'&quot;') + '" ' +
+            'oninput="regProductoInput(' + idx + ',this.value)" ' +
+            'onblur="setTimeout(function(){var d=document.getElementById(\'reg-ac-' + idx + '\');if(d)d.style.display=\'none\'},150)" ' +
+            'placeholder="Escribe para buscar...">' +
+          '<div id="reg-ac-' + idx + '" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:700;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>' +
         '</div>' +
         '<div class="reg-field">' +
           '<label class="reg-label">Categoría</label>' +
@@ -1685,7 +1750,7 @@ function regConfirmar() {
     ticketsNuevos[key] = {
       fecha:        fecha,
       tienda:       tienda,
-      ciudad:       'Puerto Morelos',
+      ciudad: document.getElementById('reg-ciudad') ? document.getElementById('reg-ciudad').value : regInferirCiudad(tienda),
       producto:     item.producto,
       categoria:    item.categoria,
       subcategoria: item.subcategoria || '',
@@ -1706,7 +1771,7 @@ function regConfirmar() {
         subcategoria: item.subcategoria || '',
         presentacion: item.presentacion || '',
         tienda:       tienda,
-        ciudad:       'Puerto Morelos',
+        ciudad:       ciudad: document.getElementById('reg-ciudad') ? document.getElementById('reg-ciudad').value : regInferirCiudad(tienda),
         precio:       item.precio,
         precioUnidad: '',
         notas:        item.notas || '',
