@@ -1195,7 +1195,45 @@ function pickerRenderHTML() {
 
 function pickerRefresh() {
   var overlay = document.getElementById('picker-overlay');
-  if (overlay) overlay.innerHTML = pickerRenderHTML();
+  if (!overlay) return;
+
+  // Solo actualizar grid e items, no todo el modal (evita perder el foco del input)
+  var prods = pickerFiltrar();
+  var yaEnLista = listaItems.map(function(i) { return listaNormalizar(i.nombre); });
+  var nSel = pickerSeleccionados.length;
+
+  var itemsHTML = prods.map(function(p) {
+    var norm = listaNormalizar(p.producto);
+    var yaEsta = yaEnLista.includes(norm);
+    var sel = pickerSeleccionados.indexOf(p.producto) !== -1;
+    var cls = 'picker-item' + (yaEsta ? ' ya-en-lista' : sel ? ' selected' : '');
+    var check = (yaEsta || sel) ? '✓' : '';
+    return '<div class="' + cls + '" onclick="pickerToggle(\'' + p.producto.replace(/'/g, "\\'") + '\')">' +
+      '<span class="picker-item-emoji">' + pickerGetEmoji(p.categoria) + '</span>' +
+      '<span class="picker-item-nombre">' + p.producto + '</span>' +
+      '<span class="picker-item-check">' + check + '</span>' +
+    '</div>';
+  }).join('');
+
+  if (!itemsHTML) itemsHTML = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">Sin resultados</div>';
+
+  var grid = overlay.querySelector('.picker-grid');
+  if (grid) grid.innerHTML = itemsHTML;
+
+  // Actualizar contador y botón sin tocar el input
+  var count = overlay.querySelector('.picker-count');
+  if (count) count.textContent = nSel > 0 ? nSel + ' seleccionado' + (nSel > 1 ? 's' : '') : 'Toca productos para seleccionar';
+
+  var btn = overlay.querySelector('.picker-btn-add');
+  if (btn) {
+    btn.disabled = nSel === 0;
+    btn.textContent = nSel > 0 ? 'Agregar ' + nSel + ' producto' + (nSel > 1 ? 's' : '') : 'Agregar';
+  }
+
+  // Actualizar categorías activas sin recrearlas
+  overlay.querySelectorAll('.picker-cat').forEach(function(el) {
+    el.classList.toggle('active', el.textContent === pickerCatActiva);
+  });
 }
 
 function pickerSetCat(cat) {
