@@ -876,12 +876,10 @@ function listaOnInput(valor) {
   var html = '';
 
   // Opción "agregar sin seleccionar" PRIMERO — Enter la elige por default
-  if (!hayExacto) {
-    html += '<div class="ldd-item ldd-libre-item" onclick="listaAgregarLibre()">' +
-      '<span class="ldd-nombre ldd-libre">➕ Agregar "' + valor.trim() + '" sin datos de precio</span>' +
-    '</div>';
-  }
-
+  dd.innerHTML += '<div onmousedown="regResolverItem(' + idx + ')" ' +
+    'style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--accent);border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;">' +
+    '🔍 Ver todo el catálogo' +
+  '</div>';
   // Sugerencias debajo
   html += listaSugerencias.map(function(s, i) {
     var tiendas = s.tiendas.map(function(t) {
@@ -1523,10 +1521,12 @@ function regProductoInput(idx, valor) {
     return p.producto.toLowerCase().includes(norm);
   }).slice(0, 7);
   if (!regAcItems.length) {
-    dd.innerHTML = '<div onmousedown="regNuevoProducto(' + idx + ',\'' + valor.replace(/'/g,"\\'") + '\')" ' +
-      'style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:6px;">' +
-      '＋ Agregar <strong style=\'margin:0 4px;\'>"' + valor + '"</strong> como producto nuevo' +
-    '</div>';
+    dd.innerHTML =
+      '<div style="padding:8px 12px;font-size:11px;color:var(--text3);">Sin resultados para "' + valor + '"</div>' +
+      '<div onmousedown="regResolverItem(' + idx + ')" ' +
+        'style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--accent);border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;">' +
+        '🔍 Ver todo el catálogo' +
+      '</div>';
     dd.style.display = 'block';
     return;
   }
@@ -1808,7 +1808,8 @@ function regPickerHTML() {
     '</div>' +
     '<div class="picker-body"><div class="picker-grid" id="reg-picker-grid">' + itemsHTML + '</div></div>' +
     '<div class="picker-footer">' +
-      '<span class="picker-count">' + (pickerSeleccionados.length > 0 ? pickerSeleccionados[0] : 'Selecciona un producto') + '</span>' +
+      '<button onclick="regNuevoDesdeModal()" ' +
+        'style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:8px 12px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;">＋ Producto nuevo</button>' +
       '<div style="display:flex;gap:8px;">' +
         '<button class="picker-btn-cancel" onclick="regCerrarPicker()">Cancelar</button>' +
         '<button class="picker-btn-add" onclick="regConfirmarPicker()" ' + (pickerSeleccionados.length===0?'disabled':'') + '>Confirmar</button>' +
@@ -1866,6 +1867,16 @@ function regConfirmarPicker() {
   regRefreshModal();
 }
 
+function regNuevoDesdeModal() {
+  var idx = regPickerIdx;
+  var nombreActual = idx !== null ? regItems[idx].producto : '';
+  regCerrarPicker();
+  // Pequeño delay para que el picker cierre antes de abrir el mini modal
+  setTimeout(function() {
+    regNuevoProducto(idx, nombreActual);
+  }, 100);
+}
+  
 function regCerrarPicker() {
   var o = document.getElementById('reg-picker-overlay');
   if (o) o.remove();
