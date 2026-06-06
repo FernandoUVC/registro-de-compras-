@@ -27,6 +27,14 @@
   window._fbRemove = () => remove(listaRef);
   window._fbListen = (cb) => onValue(listaRef, snap => cb(snap.val()));
 
+  // Lectura one-time de cualquier nodo
+  window._fbGet = (nodo) => new Promise((res, rej) => {
+    const r = ref(db, nodo);
+    onValue(r, snap => res(snap.val()), { onlyOnce: true });
+  });
+
+  // Escritura en cualquier nodo
+  window._fbWrite = (nodo, data) => set(ref(db, nodo), data);
   // Señal de que Firebase está listo
   window._fbListo = true;
   document.dispatchEvent(new Event('firebase-listo'));
@@ -280,25 +288,20 @@
 // CONFIGURACIÓN — editar aquí para cambiar la fuente de datos
 // ══════════════════════════════════════════════════════════════
 
-// URL base del Google Sheet publicado como CSV
-// Formato: https://docs.google.com/spreadsheets/d/e/XXXX/pub?gid=GID&single=true&output=csv
-const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4b_t11W4G6s7qesXwPPHW0rYEWHDej07PrKwEB4tgfIHYJA9s9Ths4kUTS70dxzLuy4-OlD-cCnnV/pub';
-
-// GIDs de cada hoja (pestaña) dentro del spreadsheet
-// Para encontrar el GID: en Google Sheets, ver la URL al hacer clic en cada pestaña
-// Formato: ...#gid=XXXXXXXXX
-const SHEET_GIDS = {
-  tickets:  '181481044',
-  catalogo: '1890416397',
-  sesiones: '65837170',
-  tiendas:    '293987536',
-  categorias: '1020242528',
+// ══════════════════════════════════════════════════════════════
+// CONFIGURACIÓN DE TIENDAS (estática)
+// ══════════════════════════════════════════════════════════════
+var CONFIG_TIENDAS = {
+  costco:    { clave:'costco',    etiqueta:'Costco',        color:'#4caf7d', emoji:'🟢' },
+  walmart:   { clave:'walmart',   etiqueta:'Walmart',       color:'#5b9bd5', emoji:'🔵' },
+  chedraui:  { clave:'chedraui',  etiqueta:'Chedraui',      color:'#f5a623', emoji:'🟠' },
+  chedpm:    { clave:'chedpm',    etiqueta:'Chedraui P.M.', color:'#2ab5b5', emoji:'🔵' },
+  aki:       { clave:'aki',       etiqueta:'Super Aki',     color:'#9b7fe8', emoji:'🟣' },
+  ml:        { clave:'ml',        etiqueta:'MercadoLibre',  color:'#e05252', emoji:'🔴' },
+  pachamama: { clave:'pachamama', etiqueta:'Pachamama P.M.',color:'#4caf50', emoji:'🟢' },
 };
 
-// CONFIG_TIENDAS — se carga desde Google Sheets al iniciar
-var CONFIG_TIENDAS = {};
-
-// ── GUÍA DE USO (estática — no viene del sheet) ──────────────
+// ── GUÍA DE USO (estática) ────────────────────────────────────
 const GUIA = [
   { pregunta: '📸 Foto del ticket', respuesta: 'Capturo todos los artículos, precios, descuentos y totales' },
   { pregunta: '📸 Foto del producto', respuesta: 'Identifico nombre completo, marca, gramaje y características' },
@@ -310,98 +313,34 @@ const GUIA = [
 ];
 
 // ══════════════════════════════════════════════════════════════
-// VARIABLES GLOBALES — se pueblan al cargar
+// VARIABLES GLOBALES
 // ══════════════════════════════════════════════════════════════
 var TICKETS  = [];
 var CATALOGO = [];
 var SESIONES = [];
 
 // ══════════════════════════════════════════════════════════════
-// CARGA DE DATOS DESDE GOOGLE SHEETS
+// CARGA DE DATOS DESDE FIREBASE
 // ══════════════════════════════════════════════════════════════
 
-function sheetUrl(gid) {
-  return SHEET_BASE + '?gid=' + gid + '&single=true&output=csv';
-}
-
-// Parsea CSV respetando campos entre comillas con comas internas
-function parsearCSV(texto) {
-  var lineas = texto.trim().split('\n');
-  if (lineas.length < 2) return [];
-  var headers = parsearLineaCSV(lineas[0]);
-  return lineas.slice(1).map(function(linea) {
-    var valores = parsearLineaCSV(linea);
-    var obj = {};
-    headers.forEach(function(h, i) {
-      obj[h.trim()] = (valores[i] || '').trim();
-    });
-    return obj;
-  }).filter(function(row) {
-    // Descartar filas completamente vacías
-    return Object.values(row).some(function(v) { return v !== ''; });
-  });
-}
-
-function parsearLineaCSV(linea) {
-  var resultado = [];
-  var campo = '';
-  var dentroComillas = false;
-  for (var i = 0; i < linea.length; i++) {
-    var c = linea[i];
-    if (c === '"') {
-      if (dentroComillas && linea[i+1] === '"') { campo += '"'; i++; }
-      else { dentroComillas = !dentroComillas; }
-    } else if (c === ',' && !dentroComillas) {
-      resultado.push(campo);
-      campo = '';
-    } else {
-      campo += c;
-    }
+function parsearNumero(valor) {
+  if (valor === null || valor === undefined || valor === '') return 0;
+  if (typeof valor === 'number') return valor;
+  var s = String(valor).trim().replace(/\r/g, '').replace(/[$€\s]/g, '');
+  if (s === '' || s === '-') return 0;
+  var tieneP = s.indexOf('.') !== -1;
+  var tieneC = s.indexOf(',') !== -1;
+  if (tieneP && tieneC) {
+    s = s.lastIndexOf('.') < s.lastIndexOf(',')
+      ? s.replace(/\./g, '').replace(',', '.')
+      : s.replace(/,/g, '');
+  } else if (tieneC && !tieneP) {
+    var partes = s.split(',');
+    s = (partes.length === 2 && partes[1].length <= 2)
+      ? s.replace(',', '.') : s.replace(/,/g, '');
   }
-  resultado.push(campo);
-  return resultado;
-}
-
-// Convierte una fila del CSV de tickets al formato que espera la app
-function mapearTicket(row) {
-  return {
-    fecha:        row.fecha        || '',
-    tienda:       row.tienda       || '',
-    ciudad:       row.ciudad       || '',
-    producto:     row.producto     || '',
-    categoria:    row.categoria    || '',
-    subcategoria: row.subcategoria || '',
-    presentacion: row.presentacion || '',
-    precio:       parsearNumero(row.precio),
-    cantidad:     parseInt(row.cantidad) || 1,
-    notas:        row.notas        || '',
-    tipo:         row.tipo         || 'compra',
-  };
-}
-
-function mapearCatalogo(row) {
-  return {
-    producto:     row.producto     || '',
-    categoria:    row.categoria    || '',
-    subcategoria: row.subcategoria || '',
-    presentacion: row.presentacion || '',
-    tienda:       row.tienda       || '',
-    ciudad:       row.ciudad       || '',
-    precio:       parsearNumero(row.precio),
-    precioUnidad: row.precioUnidad || '',
-    notas:        row.notas        || '',
-  };
-}
-
-function mapearSesion(row) {
-  return {
-    tienda:          row.tienda          || '',
-    etiquetaOriginal:row.etiquetaOriginal|| '',
-    fecha:           row.fecha           || '',
-    total:           parsearNumero(row.total),
-    ahorro:          parsearNumero(row.ahorro),
-    notas:           row.notas           || '',
-  };
+  var n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
 }
 
 function setLoadingMsg(msg, pct) {
@@ -411,101 +350,41 @@ function setLoadingMsg(msg, pct) {
   if (bar) bar.style.width = pct + '%';
 }
 
-
-// Convierte cualquier formato numérico que pueda venir del CSV de Google Sheets:
-// "1,504.00" | "1.504,00" | "$165" | "165,00" | "165.00" | "1504" → número JS
-function parsearNumero(valor) {
-  if (valor === null || valor === undefined || valor === '') return 0;
-  var s = String(valor).trim();
-  // Quitar símbolo de moneda y espacios
-  s = s.replace(/[$€\s]/g, '');
-  if (s === '' || s === '-') return 0;
-  // Detectar formato europeo: coma como decimal, punto como miles
-  // Ej: "1.504,50" → tiene punto Y coma, y la coma va después del punto
-  var tieneP = s.indexOf('.') !== -1;
-  var tieneC = s.indexOf(',') !== -1;
-  if (tieneP && tieneC) {
-    if (s.lastIndexOf('.') < s.lastIndexOf(',')) {
-      // Formato europeo: "1.504,50" → quitar puntos, cambiar coma por punto
-      s = s.replace(/\./g, '').replace(',', '.');
-    } else {
-      // Formato anglosajón: "1,504.50" → solo quitar comas
-      s = s.replace(/,/g, '');
-    }
-  } else if (tieneC && !tieneP) {
-    // Solo coma: puede ser decimal europeo "165,50" o miles "1,504"
-    var partes = s.split(',');
-    if (partes.length === 2 && partes[1].length <= 2) {
-      // Decimal europeo: "165,50" → "165.50"
-      s = s.replace(',', '.');
-    } else {
-      // Miles anglosajón: "1,504" → "1504"
-      s = s.replace(/,/g, '');
-    }
-  }
-  // En este punto solo debe quedar dígitos y un punto decimal
-  var n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
-}
-
-function mapearTienda(row) {
-  // Columnas esperadas en el sheet: clave, etiqueta, color, emoji
-  var clave = (row.clave || '').trim();
-  if (!clave) return null;
-  return {
-    clave:    clave,
-    etiqueta: row.etiqueta || clave,
-    color:    row.color    || '#999999',
-    emoji:    row.emoji    || '⚪',
-  };
-}
-
-function fetchSheet(gid, mapFn, nombre) {
-  return fetch(sheetUrl(gid))
-    .then(function(r) {
-      if (!r.ok) throw new Error('Error al cargar ' + nombre + ': HTTP ' + r.status);
-      return r.text();
-    })
-    .then(function(txt) {
-      return parsearCSV(txt).map(mapFn).filter(function(r) {
-        // descartar filas completamente vacías
-        return Object.values(r).some(function(v) { return v !== '' && v !== null && v !== undefined; });
-      });
-    });
-}
-
 function cargarDatos() {
-  setLoadingMsg('Cargando configuración...', 10);
+  setLoadingMsg('Conectando con Firebase...', 10);
 
-  // Tiendas primero — CONFIG_TIENDAS debe existir antes de renderizar cualquier cosa
-  return fetch(sheetUrl(SHEET_GIDS.tiendas))
-    .then(function(r) { return r.text(); })
-    .then(function(txt) {
-      var filas = parsearCSV(txt);
-      filas.forEach(function(row) {
-        var t = mapearTienda(row);
-        if (t) CONFIG_TIENDAS[t.clave] = t;
-      });
-      setLoadingMsg('Cargando tickets...', 30);
-      return fetchSheet(SHEET_GIDS.tickets, mapearTicket, 'tickets');
-    })
-    .then(function(data) {
-      TICKETS = data;
-      setLoadingMsg('Cargando catálogo...', 60);
-      return fetchSheet(SHEET_GIDS.catalogo, mapearCatalogo, 'catálogo');
-    })
-    .then(function(data) {
-      CATALOGO = data;
-      setLoadingMsg('Cargando sesiones...', 85);
-      return fetchSheet(SHEET_GIDS.sesiones, mapearSesion, 'sesiones');
-    })
-    .then(function(data) {
-      SESIONES = data;
-      setLoadingMsg('Listo', 100);
-    });
+  return new Promise(function(resolve, reject) {
+    function intentar() {
+      if (!window._fbGet) { setTimeout(intentar, 100); return; }
+      setLoadingMsg('Cargando datos...', 40);
+
+      Promise.all([
+        window._fbGet('tickets'),
+        window._fbGet('catalogo'),
+        window._fbGet('sesiones'),
+      ]).then(function(resultados) {
+        var rawTickets  = resultados[0];
+        var rawCatalogo = resultados[1];
+        var rawSesiones = resultados[2];
+
+        TICKETS = rawTickets
+          ? Object.values(rawTickets).filter(function(r) { return r && r.producto; })
+          : [];
+        CATALOGO = rawCatalogo
+          ? Object.values(rawCatalogo).filter(function(r) { return r && r.producto; })
+          : [];
+        SESIONES = rawSesiones
+          ? Object.values(rawSesiones).filter(function(r) { return r && r.tienda; })
+          : [];
+
+        setLoadingMsg('Listo', 100);
+        resolve();
+      }).catch(reject);
+    }
+    intentar();
+  });
 }
 
-// ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
 // FUNCIONES UTILITARIAS
 // ══════════════════════════════════════════════════════════════
