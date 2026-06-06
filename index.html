@@ -211,6 +211,35 @@
   .ruta-total-label { font-size: 12px; color: var(--text2); }
   .ruta-total-valor { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--accent); }
 
+  /* Modal catálogo picker */
+  .picker-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px; }
+  .picker-modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden; }
+  .picker-header { padding:18px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0; }
+  .picker-title { font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent);margin-bottom:10px; }
+  .picker-cats { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px; }
+  .picker-cat { background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--text2);cursor:pointer;transition:all 0.15s; }
+  .picker-cat.active { background:var(--accent);border-color:var(--accent);color:#000;font-weight:600; }
+  .picker-search { width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;font-family:'DM Sans',sans-serif; }
+  .picker-search:focus { border-color:var(--accent); }
+  .picker-body { overflow-y:auto;flex:1;padding:12px 20px; }
+  .picker-grid { display:flex;flex-direction:column;gap:4px; }
+  .picker-item { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;transition:background 0.15s;border:1px solid transparent; }
+  .picker-item:hover { background:var(--surface2); }
+  .picker-item.selected { background:var(--surface2);border-color:var(--accent); }
+  .picker-item.ya-en-lista { opacity:0.5;background:var(--surface2);border-color:var(--accent);pointer-events:none; }
+  .picker-item-emoji { font-size:18px;width:24px;text-align:center;flex-shrink:0; }
+  .picker-item-nombre { flex:1;font-size:13px;color:var(--text); }
+  .picker-item-check { width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;transition:all 0.15s; }
+  .picker-item.selected .picker-item-check { background:var(--accent);border-color:var(--accent);color:#000; }
+  .picker-item.ya-en-lista .picker-item-check { background:var(--accent);border-color:var(--accent);color:#000; }
+  .picker-footer { padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .picker-count { font-size:12px;color:var(--text3); }
+  .picker-btn-add { background:var(--accent);color:#000;border:none;border-radius:10px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:opacity 0.2s; }
+  .picker-btn-add:disabled { opacity:0.35;cursor:not-allowed; }
+  .picker-btn-cancel { background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer; }
+  .picker-add-btn-inline { background:var(--surface2);border:1px solid var(--border);color:var(--accent);border-radius:8px;padding:5px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;margin-left:8px; }
+  .picker-add-btn-inline:hover { background:var(--accent);color:#000;border-color:var(--accent); }
+  
   /* Botón limpiar lista */
   .lista-clear-btn { background: transparent; border: 1px solid var(--border); color: var(--text3); padding: 5px 13px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.2s; }
   .lista-clear-btn:hover { border-color: var(--red); color: var(--red); }
@@ -1056,6 +1085,156 @@ function listaGuardar() {
   window._fbSet(listaItems.length ? listaItems : null);
 }
 
+// ══════════════════════════════════════════════════════════════
+// MÓDULO: PICKER DE CATÁLOGO
+// ══════════════════════════════════════════════════════════════
+var pickerSeleccionados = [];
+var pickerCatActiva = 'Todos';
+var pickerBusqueda = '';
+
+function pickerGetEmoji(categoria) {
+  var map = {
+    'Frutas y Verduras':'🥦','Carnes y Pescados':'🥩','Lácteos':'🥛',
+    'Panadería':'🍞','Alimentos secos':'🌾','Conservas y Salsas':'🥫',
+    'Snacks':'🍿','Bebidas':'🧃','Congelados':'🧊','Higiene':'🧴',
+    'Hogar':'🧹','Farmacia':'💊','Mascotas':'🐾','Cosméticos':'✨',
+    'Electrónica':'🔋','Ferretería':'🔧','Ropa y calzado':'👕',
+    'Papelería':'✏️','Flores y Plantas':'🌱','Autos':'🚗',
+    'Servicios':'🔧','Varios':'📦','Por identificar':'❓'
+  };
+  return map[categoria] || '🛒';
+}
+
+function pickerProductosUnicos() {
+  var vistos = {};
+  CATALOGO.forEach(function(p) {
+    var key = p.producto.trim().toLowerCase();
+    if (!vistos[key]) vistos[key] = p;
+  });
+  return Object.values(vistos).sort(function(a, b) {
+    return a.categoria.localeCompare(b.categoria) || a.producto.localeCompare(b.producto);
+  });
+}
+
+function pickerCategorias() {
+  var cats = new Set();
+  pickerProductosUnicos().forEach(function(p) { cats.add(p.categoria); });
+  return ['Todos'].concat(Array.from(cats).sort());
+}
+
+function pickerFiltrar() {
+  var prods = pickerProductosUnicos();
+  if (pickerCatActiva !== 'Todos') {
+    prods = prods.filter(function(p) { return p.categoria === pickerCatActiva; });
+  }
+  if (pickerBusqueda.trim()) {
+    var norm = pickerBusqueda.toLowerCase();
+    prods = prods.filter(function(p) {
+      return p.producto.toLowerCase().includes(norm) || (p.subcategoria||'').toLowerCase().includes(norm);
+    });
+  }
+  return prods;
+}
+
+function pickerAbrir() {
+  pickerSeleccionados = [];
+  pickerCatActiva = 'Todos';
+  pickerBusqueda = '';
+  var overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.id = 'picker-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) pickerCerrar(); };
+  overlay.innerHTML = pickerRenderHTML();
+  document.body.appendChild(overlay);
+}
+
+function pickerRenderHTML() {
+  var cats = pickerCategorias();
+  var prods = pickerFiltrar();
+  var yaEnLista = listaItems.map(function(i) { return listaNormalizar(i.nombre); });
+  var nSel = pickerSeleccionados.length;
+
+  var catsHTML = cats.map(function(c) {
+    return '<button class="picker-cat' + (c === pickerCatActiva ? ' active' : '') +
+      '" onclick="pickerSetCat(\'' + c.replace(/'/g, "\\'") + '\')">' + c + '</button>';
+  }).join('');
+
+  var itemsHTML = prods.map(function(p) {
+    var norm = listaNormalizar(p.producto);
+    var yaEsta = yaEnLista.includes(norm);
+    var selIdx = pickerSeleccionados.indexOf(p.producto);
+    var sel = selIdx !== -1;
+    var cls = 'picker-item' + (yaEsta ? ' ya-en-lista' : sel ? ' selected' : '');
+    var check = (yaEsta || sel) ? '✓' : '';
+    return '<div class="' + cls + '" onclick="pickerToggle(\'' + p.producto.replace(/'/g, "\\'") + '\')">' +
+      '<span class="picker-item-emoji">' + pickerGetEmoji(p.categoria) + '</span>' +
+      '<span class="picker-item-nombre">' + p.producto + '</span>' +
+      '<span class="picker-item-check">' + check + '</span>' +
+    '</div>';
+  }).join('');
+
+  if (!itemsHTML) itemsHTML = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px;">Sin resultados</div>';
+
+  return '<div class="picker-modal">' +
+    '<div class="picker-header">' +
+      '<div class="picker-title">📦 Catálogo de productos</div>' +
+      '<div class="picker-cats">' + catsHTML + '</div>' +
+      '<input class="picker-search" placeholder="Buscar producto…" value="' + pickerBusqueda + '" ' +
+        'oninput="pickerBuscar(this.value)" autocomplete="off">' +
+    '</div>' +
+    '<div class="picker-body"><div class="picker-grid">' + itemsHTML + '</div></div>' +
+    '<div class="picker-footer">' +
+      '<span class="picker-count">' + (nSel > 0 ? nSel + ' seleccionado' + (nSel>1?'s':'') : 'Toca productos para seleccionar') + '</span>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="picker-btn-cancel" onclick="pickerCerrar()">Cancelar</button>' +
+        '<button class="picker-btn-add" onclick="pickerConfirmar()" ' + (nSel===0?'disabled':'') + '>Agregar ' + (nSel>0?nSel+' producto'+(nSel>1?'s':''):'') + '</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function pickerRefresh() {
+  var overlay = document.getElementById('picker-overlay');
+  if (overlay) overlay.innerHTML = pickerRenderHTML();
+}
+
+function pickerSetCat(cat) {
+  pickerCatActiva = cat;
+  pickerRefresh();
+}
+
+function pickerBuscar(val) {
+  pickerBusqueda = val;
+  pickerRefresh();
+}
+
+function pickerToggle(nombre) {
+  var idx = pickerSeleccionados.indexOf(nombre);
+  if (idx === -1) pickerSeleccionados.push(nombre);
+  else pickerSeleccionados.splice(idx, 1);
+  pickerRefresh();
+}
+
+function pickerConfirmar() {
+  pickerSeleccionados.forEach(function(nombre) {
+    var yaExiste = listaItems.some(function(i) {
+      return listaNormalizar(i.nombre) === listaNormalizar(nombre);
+    });
+    if (!yaExiste) {
+      listaItems.push({ id: Date.now() + Math.random(), nombre: nombre, expandido: false, checked: false });
+    }
+  });
+  listaGuardar();
+  listaRenderItems();
+  listaRenderRuta();
+  pickerCerrar();
+}
+
+function pickerCerrar() {
+  var overlay = document.getElementById('picker-overlay');
+  if (overlay) overlay.remove();
+}
+  
 function listaIniciarSync() {
   if (!window._fbListen) return;
   window._fbListen(function(data) {
@@ -1220,8 +1399,11 @@ function renderModuloLista() {
       // Columna izquierda: input + lista de ítems
       '<div>' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
-          '<span style="font-size:11px;color:var(--text3);">Escribe para buscar en tus precios conocidos · Enter para agregar</span>' +
-          '<button class="lista-clear-btn" onclick="listaLimpiar()">✕ Limpiar</button>' +
+          '<span style="font-size:11px;color:var(--text3);">Escribe para buscar · Enter para agregar</span>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button class="picker-add-btn-inline" onclick="pickerAbrir()">＋ Catálogo</button>' +
+            '<button class="lista-clear-btn" onclick="listaLimpiar()">✕ Limpiar</button>' +
+          '</div>' +
         '</div>' +
         '<div style="position:relative;">' +
           '<input type="text" class="lista-input" id="lista-input" ' +
