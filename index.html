@@ -137,7 +137,7 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   @media (max-width: 600px) {
-    .sheets-container { padding: 14px; gap: 18px; }
+    .sheets-container { padding: 0; }
     .header { padding: 13px 16px; }
     .summary-bar { padding: 14px 16px; }
     .table-scroll { height: 85vw; max-height: 500px; }
@@ -310,8 +310,8 @@
   .tab-label { font-size:9px;color:var(--text3);font-family:'DM Sans',sans-serif;letter-spacing:0.02em;transition:color 0.15s; }
   .tab-item.active .tab-label { color:var(--accent); }
   .tab-item.active .tab-icon { transform:translateY(-1px); }
-  .seccion-bloque { display:none; padding: 20px; }
-  .seccion-bloque.activa { display:block; }
+  .seccion-bloque { display:none !important; padding: 20px; }
+  .seccion-bloque.activa { display:block !important; }
   
   /* Botón limpiar lista */
   .lista-clear-btn { background: transparent; border: 1px solid var(--border); color: var(--text3); padding: 5px 13px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.2s; }
@@ -694,7 +694,7 @@ function construirBloqueSección(config) {
         '</div>'
     : '';
 
-  return '<div class="sheet-block">' +
+  return '<div class="sheet-block" style="height:100%">' +
     '<div class="sheet-title">' +
       '<div class="sheet-title-left">' +
         '<span>' + config.icono + '</span>' +
