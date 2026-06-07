@@ -587,7 +587,8 @@ function renderTablaTickets(filtroTexto, filtroTienda) {
     }
 
     var totalLinea = ticket.precio * ticket.cantidad;
-    filas += '<tr class="row-' + ticket.tienda + '" style="cursor:pointer" onclick="editAbrir(\'tickets\',' + JSON.stringify(ticket).replace(/'/g,"&#39;") + ')">' +
+    var ticketKey = ticket._key;
+    filas += '<tr class="row-' + ticket.tienda + '" style="cursor:pointer" onclick="editAbrirPorKey(\'tickets\',\'' + ticketKey + '\')">' +
       '<td style="color:var(--text3);white-space:nowrap">' + ticket.fecha + '</td>' +
       '<td>' + renderBadgeTienda(ticket.tienda) + '</td>' +
       '<td style="color:var(--text3)">' + ticket.ciudad + '</td>' +
@@ -622,7 +623,8 @@ function renderTablaCatalogo(filtroTexto, filtroTienda) {
 
   var filas = datos.map(function(p) {
     var clave = obtenerClaveTienda(p.tienda);
-    return '<tr class="row-' + clave + '" style="cursor:pointer" onclick="editAbrir(\'catalogo\',' + JSON.stringify(p).replace(/'/g,"&#39;") + ')">' +
+    var pKey = p._key;
+    return '<tr class="row-' + clave + '" style="cursor:pointer" onclick="editAbrirPorKey(\'catalogo\',\'' + pKey + '\')">' +
       '<td style="font-weight:500;max-width:240px">' + p.producto + '</td>' +
       '<td style="color:var(--text3);font-size:11px">' + p.categoria + '</td>' +
       '<td style="color:var(--text3);font-size:11px">' + (p.subcategoria || '') + '</td>' +
@@ -1457,6 +1459,12 @@ function renderModuloLista() {
 var editRegistro = null;
 var editTipo     = null;
 
+function editAbrirPorKey(tipo, key) {
+  var arr = tipo === 'tickets' ? TICKETS : CATALOGO;
+  var registro = arr.find(function(r) { return r._key === key; });
+  if (registro) editAbrir(tipo, registro);
+}
+  
 function editAbrir(tipo, registro) {
   editTipo     = tipo;
   editRegistro = registro;
