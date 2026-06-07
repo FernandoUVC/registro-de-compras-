@@ -718,6 +718,7 @@ function actualizarSeccion(idSeccion) {
     html = resultado.html;
     conteo = resultado.conteo + ' productos';
   } else if (idSeccion === 'resumen') {
+    renderSummaryBar();
     html = renderTablaResumen();
     conteo = SESIONES.length + ' sesiones';
   } else if (idSeccion === 'guia') {
@@ -747,7 +748,6 @@ function navegar(idSeccion) {
 }
 
 function inicializar() {
-  renderSummaryBar();
   // Construir todas las secciones pero solo mostrar la activa
   document.getElementById('sheetsContainer').innerHTML =
     SECCIONES.map(function(s) {
