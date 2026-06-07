@@ -410,14 +410,14 @@ function cargarDatos() {
         var rawCatalogo = resultados[1];
         var rawSesiones = resultados[2];
 
-        TICKETS = rawTickets
-          ? Object.values(rawTickets).filter(function(r) { return r && r.producto; })
+       TICKETS = rawTickets
+          ? Object.entries(rawTickets).filter(function(e) { return e[1] && e[1].producto; }).map(function(e) { return Object.assign({_key: e[0]}, e[1]); })
           : [];
         CATALOGO = rawCatalogo
-          ? Object.values(rawCatalogo).filter(function(r) { return r && r.producto; })
+          ? Object.entries(rawCatalogo).filter(function(e) { return e[1] && e[1].producto; }).map(function(e) { return Object.assign({_key: e[0]}, e[1]); })
           : [];
         SESIONES = rawSesiones
-          ? Object.values(rawSesiones).filter(function(r) { return r && r.tienda; })
+          ? Object.entries(rawSesiones).filter(function(e) { return e[1] && e[1].tienda; }).map(function(e) { return Object.assign({_key: e[0]}, e[1]); })
           : [];
 
         setLoadingMsg('Listo', 100);
