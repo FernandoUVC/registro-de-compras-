@@ -247,6 +247,29 @@
   .picker-btn-cancel { background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer; }
   .picker-add-btn-inline { background:var(--surface2);border:1px solid var(--border);color:var(--accent);border-radius:8px;padding:5px 12px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;margin-left:8px; }
   .picker-add-btn-inline:hover { background:var(--accent);color:#000;border-color:var(--accent); }
+
+  /* Modal edición de registro */
+  .edit-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto; }
+  .edit-modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden; }
+  .edit-header { padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .edit-title { font-family:'DM Serif Display',serif;font-size:18px;color:var(--accent); }
+  .edit-body { overflow-y:auto;flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:10px; }
+  .edit-footer { padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0; }
+  .edit-btn-save { background:var(--accent);color:#000;border:none;border-radius:10px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer; }
+  .edit-btn-delete { background:transparent;border:1px solid #e05252;color:#e05252;border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer; }
+  .edit-btn-cancel { background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer; }
+  .edit-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+  .edit-field { display:flex;flex-direction:column;gap:4px; }
+  .edit-label { font-size:11px;color:var(--text3); }
+  .edit-input { background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%; }
+  .edit-input:focus { border-color:var(--accent); }
+  .edit-select { background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;cursor:pointer; }
+  .edit-consistencia { background:rgba(245,166,35,0.08);border:1px solid #f5a623;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px; }
+  .edit-consistencia-title { font-size:12px;font-weight:600;color:#f5a623; }
+  .edit-consistencia-msg { font-size:12px;color:var(--text2); }
+  .edit-consistencia-btns { display:flex;gap:8px; }
+  .edit-cons-btn { flex:1;padding:9px;border-radius:8px;font-family:'DM Sans
+  
   /* Modal registro de ticket */
   .reg-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto; }
   .reg-modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:620px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden; }
@@ -565,7 +588,7 @@ function renderTablaTickets(filtroTexto, filtroTienda) {
     }
 
     var totalLinea = ticket.precio * ticket.cantidad;
-    filas += '<tr class="row-' + ticket.tienda + '">' +
+    filas += '<tr class="row-' + ticket.tienda + '" style="cursor:pointer" onclick="editAbrir(\'tickets\',' + JSON.stringify(ticket).replace(/'/g,"&#39;") + ')">' +
       '<td style="color:var(--text3);white-space:nowrap">' + ticket.fecha + '</td>' +
       '<td>' + renderBadgeTienda(ticket.tienda) + '</td>' +
       '<td style="color:var(--text3)">' + ticket.ciudad + '</td>' +
@@ -600,7 +623,7 @@ function renderTablaCatalogo(filtroTexto, filtroTienda) {
 
   var filas = datos.map(function(p) {
     var clave = obtenerClaveTienda(p.tienda);
-    return '<tr class="row-' + clave + '">' +
+    return '<tr class="row-' + clave + '" style="cursor:pointer" onclick="editAbrir(\'catalogo\',' + JSON.stringify(p).replace(/'/g,"&#39;") + ')">' +
       '<td style="font-weight:500;max-width:240px">' + p.producto + '</td>' +
       '<td style="color:var(--text3);font-size:11px">' + p.categoria + '</td>' +
       '<td style="color:var(--text3);font-size:11px">' + (p.subcategoria || '') + '</td>' +
@@ -1429,6 +1452,228 @@ function renderModuloLista() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// MÓDULO: EDICIÓN DE REGISTROS
+// ══════════════════════════════════════════════════════════════
+var editRegistro = null;
+var editTipo     = null;
+
+function editAbrir(tipo, registro) {
+  editTipo     = tipo;
+  editRegistro = registro;
+  var overlay  = document.createElement('div');
+  overlay.className = 'edit-overlay';
+  overlay.id        = 'edit-overlay';
+  overlay.onclick   = function(e) { if (e.target === overlay) editCerrar(); };
+  overlay.innerHTML = editRenderModal();
+  document.body.appendChild(overlay);
+}
+
+function editRenderModal() {
+  var r = editRegistro;
+  var esTicket = editTipo === 'tickets';
+
+  var tiendaOpts = Object.values(CONFIG_TIENDAS).map(function(t) {
+    var sel = (r.tienda === t.clave) ? ' selected' : '';
+    return '<option value="' + t.clave + '"' + sel + '>' + t.emoji + ' ' + t.etiqueta + '</option>';
+  }).join('');
+
+  var camposTicket = esTicket ? (
+    '<div class="edit-row">' +
+      '<div class="edit-field"><label class="edit-label">Tipo</label>' +
+        '<select class="edit-select" id="edit-tipo">' +
+          '<option value="compra"'   + (r.tipo==='compra'      ? ' selected':'') + '>Compra</option>' +
+          '<option value="observacion"' + (r.tipo==='observacion' ? ' selected':'') + '>Observación</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="edit-field"><label class="edit-label">Cantidad</label>' +
+        '<input class="edit-input" type="number" id="edit-cantidad" value="' + (r.cantidad||1) + '">' +
+      '</div>' +
+    '</div>' +
+    '<div class="edit-field"><label class="edit-label">Fecha</label>' +
+      '<input class="edit-input" id="edit-fecha" value="' + (r.fecha||'') + '">' +
+    '</div>'
+  ) : (
+    '<div class="edit-row">' +
+      '<div class="edit-field"><label class="edit-label">Precio/unidad</label>' +
+        '<input class="edit-input" id="edit-precioUnidad" value="' + (r.precioUnidad||'') + '">' +
+      '</div>' +
+      '<div class="edit-field"><label class="edit-label">Presentación</label>' +
+        '<input class="edit-input" id="edit-presentacion" value="' + (r.presentacion||'') + '">' +
+      '</div>' +
+    '</div>'
+  );
+
+  return '<div class="edit-modal">' +
+    '<div class="edit-header">' +
+      '<div class="edit-title">✏️ Editar ' + (esTicket ? 'ticket' : 'catálogo') + '</div>' +
+      '<button class="edit-btn-cancel" onclick="editCerrar()" style="border:none;font-size:18px;background:transparent;cursor:pointer;color:var(--text3)">✕</button>' +
+    '</div>' +
+    '<div class="edit-body">' +
+      '<div class="edit-field"><label class="edit-label">Producto</label>' +
+        '<input class="edit-input" id="edit-producto" value="' + (r.producto||'').replace(/"/g,'&quot;') + '">' +
+      '</div>' +
+      '<div class="edit-row">' +
+        '<div class="edit-field"><label class="edit-label">Categoría</label>' +
+          '<input class="edit-input" id="edit-categoria" value="' + (r.categoria||'') + '">' +
+        '</div>' +
+        '<div class="edit-field"><label class="edit-label">Subcategoría</label>' +
+          '<input class="edit-input" id="edit-subcategoria" value="' + (r.subcategoria||'') + '">' +
+        '</div>' +
+      '</div>' +
+      '<div class="edit-row">' +
+        '<div class="edit-field"><label class="edit-label">Tienda</label>' +
+          '<select class="edit-select" id="edit-tienda">' + tiendaOpts + '</select>' +
+        '</div>' +
+        '<div class="edit-field"><label class="edit-label">Ciudad</label>' +
+          '<input class="edit-input" id="edit-ciudad" value="' + (r.ciudad||'') + '">' +
+        '</div>' +
+      '</div>' +
+      '<div class="edit-field"><label class="edit-label">Precio</label>' +
+        '<input class="edit-input" type="number" id="edit-precio" value="' + (r.precio||0) + '">' +
+      '</div>' +
+      camposTicket +
+      '<div class="edit-field"><label class="edit-label">Notas</label>' +
+        '<input class="edit-input" id="edit-notas" value="' + (r.notas||'').replace(/"/g,'&quot;') + '">' +
+      '</div>' +
+    '</div>' +
+    '<div class="edit-footer">' +
+      '<button class="edit-btn-delete" onclick="editEliminar()">🗑 Eliminar</button>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="edit-btn-cancel" onclick="editCerrar()">Cancelar</button>' +
+        '<button class="edit-btn-save" onclick="editGuardar()">Guardar</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function editRecopilarDatos() {
+  var r = editRegistro;
+  var esTicket = editTipo === 'tickets';
+  var datos = {
+    _key:        r._key,
+    producto:    document.getElementById('edit-producto').value.trim(),
+    categoria:   document.getElementById('edit-categoria').value.trim(),
+    subcategoria:document.getElementById('edit-subcategoria').value.trim(),
+    tienda:      document.getElementById('edit-tienda').value,
+    ciudad:      document.getElementById('edit-ciudad').value.trim(),
+    precio:      parseFloat(document.getElementById('edit-precio').value) || 0,
+    notas:       document.getElementById('edit-notas').value.trim(),
+  };
+  if (esTicket) {
+    datos.fecha    = document.getElementById('edit-fecha').value.trim();
+    datos.tipo     = document.getElementById('edit-tipo').value;
+    datos.cantidad = parseInt(document.getElementById('edit-cantidad').value) || 1;
+  } else {
+    datos.precioUnidad = document.getElementById('edit-precioUnidad').value.trim();
+    datos.presentacion = document.getElementById('edit-presentacion').value.trim();
+  }
+  return datos;
+}
+
+function editGuardar() {
+  var datos         = editRecopilarDatos();
+  var nombreOriginal = editRegistro.producto;
+  var nombreNuevo    = datos.producto;
+  var cambioNombre   = nombreOriginal !== nombreNuevo;
+
+  if (cambioNombre) {
+    // Contar cuántos registros tienen el nombre original
+    var enTickets  = TICKETS.filter(function(t)  { return t.producto === nombreOriginal; }).length;
+    var enCatalogo = CATALOGO.filter(function(c) { return c.producto === nombreOriginal; }).length;
+    var total      = enTickets + enCatalogo;
+
+    if (total > 1) {
+      // Mostrar panel de consistencia dentro del modal
+      editMostrarConsistencia(datos, nombreOriginal, nombreNuevo, enTickets, enCatalogo);
+      return;
+    }
+  }
+  // Sin conflicto — guardar directo
+  editEscribir(datos, false, nombreOriginal);
+}
+
+function editMostrarConsistencia(datos, nombreOriginal, nombreNuevo, enTickets, enCatalogo) {
+  var body = document.querySelector('#edit-overlay .edit-body');
+  if (!body) return;
+  // Agregar panel de consistencia al final
+  var panel = document.createElement('div');
+  panel.className = 'edit-consistencia';
+  panel.id = 'edit-panel-consistencia';
+  panel.innerHTML =
+    '<div class="edit-consistencia-title">⚠️ Cambio de nombre detectado</div>' +
+    '<div class="edit-consistencia-msg">' +
+      'Encontré <strong>' + (enTickets + enCatalogo) + ' registros</strong> con el nombre ' +
+      '"' + nombreOriginal + '" (' + enTickets + ' tickets · ' + enCatalogo + ' en catálogo).<br><br>' +
+      '¿Qué quieres hacer?' +
+    '</div>' +
+    '<div class="edit-consistencia-btns">' +
+      '<button class="edit-cons-btn solo" onclick="editEscribir(editDatosPendientes, false, \'' + nombreOriginal.replace(/'/g,"\\'") + '\')">Solo este</button>' +
+      '<button class="edit-cons-btn todos" onclick="editEscribir(editDatosPendientes, true, \'' + nombreOriginal.replace(/'/g,"\\'") + '\')">Modificar todos (' + (enTickets + enCatalogo) + ')</button>' +
+    '</div>';
+  body.appendChild(panel);
+  panel.scrollIntoView({ behavior: 'smooth' });
+  window.editDatosPendientes = datos;
+}
+
+function editEscribir(datos, todos, nombreOriginal) {
+  if (!window._fbWrite) { alert('Firebase no está listo'); return; }
+  var key = datos._key;
+  var payload = Object.assign({}, datos);
+  delete payload._key;
+
+  if (todos) {
+    // Batch update — todos los registros con nombreOriginal
+    TICKETS.forEach(function(t) {
+      if (t.producto === nombreOriginal) {
+        var p = Object.assign({}, t, { producto: datos.producto });
+        delete p._key;
+        window._fbWrite('tickets/' + t._key, p);
+        t.producto = datos.producto; // actualizar en memoria
+      }
+    });
+    CATALOGO.forEach(function(c) {
+      if (c.producto === nombreOriginal) {
+        var p = Object.assign({}, c, { producto: datos.producto });
+        delete p._key;
+        window._fbWrite('catalogo/' + c._key, p);
+        c.producto = datos.producto;
+      }
+    });
+  } else {
+    // Solo este registro
+    window._fbWrite(editTipo + '/' + key, payload);
+    // Actualizar en memoria
+    var arr = editTipo === 'tickets' ? TICKETS : CATALOGO;
+    var idx = arr.findIndex(function(r) { return r._key === key; });
+    if (idx !== -1) Object.assign(arr[idx], datos);
+  }
+
+  editCerrar();
+  // Re-renderizar la sección activa
+  actualizarSeccion(tabActivo);
+}
+
+function editEliminar() {
+  if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+  if (!window._fbWrite) return;
+  // Usar remove via set a null
+  window._fbWrite(editTipo + '/' + editRegistro._key, null);
+  // Quitar de memoria
+  var arr = editTipo === 'tickets' ? TICKETS : CATALOGO;
+  var idx = arr.findIndex(function(r) { return r._key === editRegistro._key; });
+  if (idx !== -1) arr.splice(idx, 1);
+  editCerrar();
+  actualizarSeccion(tabActivo);
+}
+
+function editCerrar() {
+  var o = document.getElementById('edit-overlay');
+  if (o) o.remove();
+  editRegistro = null;
+  editTipo     = null;
+  window.editDatosPendientes = null;
+}
 // ══════════════════════════════════════════════════════════════
 // MÓDULO: REGISTRO DE TICKET
 // ══════════════════════════════════════════════════════════════
