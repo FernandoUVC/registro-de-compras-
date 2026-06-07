@@ -346,7 +346,7 @@
   </div>
 </div>
 
-<div class="summary-bar" id="summaryBar" style="display:none"></div>
+<div id="summaryBar" style="display:none"></div>
 <div class="sheets-container" id="sheetsContainer" style="display:none"></div>
 
 <script>
@@ -2246,19 +2246,15 @@ function regCerrar() {
 }
 // ══════════════════════════════════════════════════════════════
   
-inicializar();
-
 // ══════════════════════════════════════════════════════════════
 // ARRANQUE
 // ══════════════════════════════════════════════════════════════
 cargarDatos()
   .then(function() {
-    // Ocultar overlay, mostrar app
     document.getElementById('loading-overlay').style.display = 'none';
-    document.getElementById('summaryBar').style.display = '';
     document.getElementById('sheetsContainer').style.display = '';
     document.getElementById('header-sub').textContent =
-      'Cancún · v30 · ' + TICKETS.length + ' tickets · ' + CATALOGO.length + ' en catálogo';
+      'v30 · ' + TICKETS.length + ' tickets · ' + CATALOGO.length + ' en catálogo';
     inicializar();
   })
   .catch(function(err) {
