@@ -953,6 +953,17 @@ function listaOnInput(valor) {
 }
 
 function listaOnKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    var items = document.querySelectorAll('#lista-dropdown .ldd-item');
+    if (listaDropIdx >= 0 && items.length > 0) {
+      items[listaDropIdx].click();
+    } else {
+      listaAgregarLibre();
+    }
+    return;
+  }
+
   var items = document.querySelectorAll('#lista-dropdown .ldd-item');
   if (!items.length) return;
 
@@ -964,21 +975,6 @@ function listaOnKeydown(e) {
     e.preventDefault();
     listaDropIdx = Math.max(listaDropIdx - 1, 0);
     items.forEach(function(el, i) { el.classList.toggle('ldd-active', i === listaDropIdx); });
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (listaDropIdx >= 0) {
-      // Usuario navegó con flechas — ejecutar el ítem resaltado
-      items[listaDropIdx].click();
-    } else {
-      // Sin navegación — default: agregar texto libre (primer ítem del dropdown)
-      var itemLibre = document.querySelector('#lista-dropdown .ldd-libre-item');
-      if (itemLibre) {
-        listaAgregarLibre();
-      } else if (listaSugerencias.length > 0) {
-        // Solo hay sugerencias exactas — seleccionar la primera
-        listaSeleccionar(0);
-      }
-    }
   } else if (e.key === 'Escape') {
     listaCerrarDropdown();
   }
@@ -1000,7 +996,7 @@ function listaAgregarLibre() {
   var input = document.getElementById('lista-input');
   if (!input) return;
   var nombre = (input.value || '').trim();
-  if (nombre.length >= 2) listaAgregar(nombre);
+  if (nombre.length >= 1) listaAgregar(nombre);
 }
 
 function listaAgregar(nombre) {
