@@ -1412,18 +1412,22 @@ function renderModuloLista() {
 
       // Columna izquierda: input + lista de ítems
       '<div>' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
-          '<span style="font-size:11px;color:var(--text3);">Escribe para buscar · Enter para agregar</span>' +
-          '<div style="display:flex;gap:8px;">' +
-            '<button class="picker-add-btn-inline" onclick="pickerAbrir()">＋ Catálogo</button>' +
-            '<button class="lista-clear-btn" onclick="listaLimpiar()">✕ Limpiar</button>' +
+        '<div style="margin-bottom:16px;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+            '<span style="font-size:16px;font-weight:700;color:var(--text);">¿Qué necesitas comprar?</span>' +
+            '<div style="display:flex;gap:8px;">' +
+              '<button class="lista-clear-btn" onclick="listaLimpiar()">✕ Limpiar</button>' +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        '<div style="position:relative;">' +
-          '<input type="text" class="lista-input" id="lista-input" ' +
-            'placeholder="Ej: avena, Listerine, frijoles…" autocomplete="off" ' +
-            'oninput="listaOnInput(this.value)" onkeydown="listaOnKeydown(event)">' +
-          '<div class="lista-dropdown" id="lista-dropdown"></div>' +
+          '<div style="position:relative;">' +
+            '<input type="text" class="lista-input" id="lista-input" ' +
+              'placeholder="Escribe y presiona Enter para agregar…" autocomplete="off" ' +
+              'oninput="listaOnInput(this.value)" onkeydown="listaOnKeydown(event)" ' +
+              'style="font-size:16px;padding:14px 110px 14px 16px;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,0.12);">' +
+            '<button onclick="pickerAbrir()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">＋ Catálogo</button>' +
+            '<div class="lista-dropdown" id="lista-dropdown"></div>' +
+          '</div>' +
+          '<span style="font-size:12px;color:var(--text3);margin-top:6px;display:block;">Busca en tu catálogo o agrega lo que sea — sin restricciones</span>' +
         '</div>' +
         '<div class="lista-items" style="margin-top:14px;" id="lista-items-cont">' +
           '<div class="lista-vacia">La lista está vacía — escribe un producto arriba</div>' +
