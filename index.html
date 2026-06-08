@@ -40,6 +40,7 @@
   document.dispatchEvent(new Event('firebase-listo'));
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <style>
   :root {
     --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #242424;
@@ -167,6 +168,7 @@
 
   /* Items de la lista */
   .lista-items { display: flex; flex-direction: column; gap: 7px; }
+  .litem-drag { color: var(--text3); font-size: 18px; padding: 0 6px; cursor: grab; flex-shrink: 0; touch-action: none; }
   .lista-vacia { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 14px; font-style: italic; border: 1px dashed var(--border); border-radius: 10px; }
   .litem-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
   .litem-card:hover { border-color: #3a4060; }
@@ -1264,7 +1266,9 @@ function listaRenderItems() {
     cont.innerHTML = '<div class="lista-vacia">La lista está vacía — escribe un producto arriba</div>';
     return;
   }
-
+  
+  if (window._sortable) { window._sortable.destroy(); }
+  
   cont.innerHTML = listaItems.map(function(item) {
     var precios  = listaBuscarPrecios(item.nombre);
     var mejores  = listaMejorPorTienda(precios);
@@ -1292,6 +1296,7 @@ function listaRenderItems() {
 
     return '<div class="litem-card">' +
       '<div class="litem-header">' +
+        '<div class="litem-drag">⠿</div>' +
         '<div class="litem-check' + (item.checked ? ' litem-checked' : '') + '" onclick="listaToggleCheck(' + item.id + ')">' +
           (item.checked ? '✓' : '') +
         '</div>' +
@@ -1305,6 +1310,15 @@ function listaRenderItems() {
       '<div class="litem-precios' + (item.expandido ? ' litem-abierto' : '') + '">' + preciosHTML + '</div>' +
     '</div>';
   }).join('');
+  window._sortable = Sortable.create(cont, {
+    animation: 150,
+    handle: '.litem-drag',
+    onEnd: function(evt) {
+      var item = listaItems.splice(evt.oldIndex, 1)[0];
+      listaItems.splice(evt.newIndex, 0, item);
+      listaGuardar();
+    }
+  });
 }
 
 // ── RENDER RUTA ──────────────────────────────────────────────
