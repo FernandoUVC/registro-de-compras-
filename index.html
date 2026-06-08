@@ -1037,6 +1037,7 @@ function listaEliminar(id) {
 }
 
 function listaLimpiar() {
+  if (!confirm('¿Seguro que quieres limpiar toda la lista?')) return;
   listaItems = [];
   if (window._fbRemove) window._fbRemove();
   listaRenderItems();
